@@ -1,0 +1,4 @@
+github.com/codingconcepts/semaphore v0.0.0-20230226201920-15d03be617d3 h1:HLrppvxr1BhS4fzmgXJz0Plx6/cYFcVG5A64qSz+Z1I=
+github.com/codingconcepts/semaphore v0.0.0-20230226201920-15d03be617d3/go.mod h1:k4UeA7wWbI1kBpVzoI1RA+82yxnF9d+nzGN8oXs2JLg=
+github.com/codingconcepts/throttle v0.0.0-20230226200606-129636ccf0eb h1:odFT0fYIA0JFGePyYgGzKpJ4BQNv+UZJX0lgA2aHThY=
+github.com/codingconcepts/throttle v0.0.0-20230226200606-129636ccf0eb/go.mod h1:X+45yMPU167fJcu3NugWjY19sKfR3Z40CyJl+AebpSw=
