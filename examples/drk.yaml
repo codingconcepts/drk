@@ -1,0 +1,30 @@
+queries:
+
+  - name: populate
+    type: insert
+    rate:
+      rps: 10000
+      duration: 1s
+    statement: |
+      UPSERT INTO product (id, name, market, amount, currency) VALUES ($1, $2, $3, $4, $5)
+    arguments:
+      - name: id
+        type: gen
+        processor:
+          value: ${uuid}
+      - name: name
+        type: gen
+        processor:
+          value: ${adjective} ${adverb} ${noun_countable}
+      - name: market
+        type: set
+        processor:
+          values: [de, fr, uk, us]
+      - name: amount
+        type: gen
+        processor:
+          value: ${uint8}
+      - name: currency
+        type: gen
+        processor:
+          value: ${currency_short}
