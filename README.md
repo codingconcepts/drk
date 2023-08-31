@@ -33,4 +33,5 @@ go run drk.go \
 
 ### Todos
 
-* Support for multiple VUs (virtual users).
+* **BUG** Fix concurrent map access in `RefGenerator.Generate`
+* **FEATURE** Support for multiple VUs (virtual users)

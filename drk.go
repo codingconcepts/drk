@@ -93,7 +93,7 @@ func runQuery(r *runner.Runner, query model.Query, t *model.Tables) error {
 }
 
 func printer(query model.Query, executions, done <-chan struct{}) {
-	fmt.Println()
+	defer fmt.Println()
 
 	count := 0
 
@@ -101,7 +101,7 @@ func printer(query model.Query, executions, done <-chan struct{}) {
 	for {
 		select {
 		case <-ticker:
-			fmt.Printf("%s (%s): %d\r", query.Table, query.Group, count)
+			fmt.Printf("%s: %d\r", query.Table, count)
 		case <-executions:
 			count++
 		case <-done:

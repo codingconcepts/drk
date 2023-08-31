@@ -16,7 +16,6 @@ type Config struct {
 // Query represents a statement to run against the database.
 type Query struct {
 	Table     string     `yaml:"table"`
-	Group     string     `yaml:"group"`
 	Type      string     `yaml:"type"`
 	Rate      Rate       `yaml:"rate"`
 	Statement string     `yaml:"statement"`
