@@ -74,13 +74,39 @@ func runQueries(db *pgxpool.Pool, config model.Config, t *model.Tables) error {
 func runQuery(r *runner.Runner, query model.Query, t *model.Tables) error {
 	thr := throttle.New(int64(query.Rate.RPS), time.Second)
 
+	executions := make(chan struct{})
+	done := make(chan struct{})
+
 	f := func() error {
+		executions <- struct{}{}
 		return r.Run(query)
 	}
+
+	go printer(query, executions, done)
 
 	if err := thr.DoFor(context.Background(), query.Rate.Duration, f); err != nil {
 		return fmt.Errorf("running query: %w", err)
 	}
 
+	done <- struct{}{}
+
 	return nil
+}
+
+func printer(query model.Query, executions, done <-chan struct{}) {
+	fmt.Println()
+
+	count := 0
+
+	ticker := time.NewTicker(time.Millisecond * 100).C
+	for {
+		select {
+		case <-ticker:
+			fmt.Printf("%s (%s): %d\r", query.Table, query.Group, count)
+		case <-executions:
+			count++
+		case <-done:
+			return
+		}
+	}
 }
