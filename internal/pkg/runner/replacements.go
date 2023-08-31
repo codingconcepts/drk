@@ -1,4 +1,4 @@
-package random
+package runner
 
 import "github.com/brianvoe/gofakeit/v6"
 

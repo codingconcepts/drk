@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/codingconcepts/drk/internal/pkg/model"
-	"github.com/codingconcepts/drk/internal/pkg/random"
+	"github.com/codingconcepts/drk/internal/pkg/runner"
 	"github.com/codingconcepts/throttle"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -61,29 +61,21 @@ func loadConfig(filename string) (model.Config, error) {
 }
 
 func runQueries(db *pgxpool.Pool, config model.Config, t *model.Tables) error {
+	r := runner.New(db)
 	for _, query := range config.Queries {
-		if err := runQuery(db, query, t); err != nil {
-			return fmt.Errorf("running query for %q: %w", query.Name, err)
+		if err := runQuery(r, query, t); err != nil {
+			return fmt.Errorf("running query for %q: %w", query.Table, err)
 		}
 	}
 
 	return nil
 }
 
-func runQuery(db *pgxpool.Pool, query model.Query, t *model.Tables) error {
+func runQuery(r *runner.Runner, query model.Query, t *model.Tables) error {
 	thr := throttle.New(int64(query.Rate.RPS), time.Second)
 
 	f := func() error {
-		args, err := generateArguments(query.Arguments)
-		if err != nil {
-			return fmt.Errorf("generating arguments: %w", err)
-		}
-
-		if _, err = db.Exec(context.Background(), query.Statement, args...); err != nil {
-			return fmt.Errorf("making query: %w", err)
-		}
-
-		return nil
+		return r.Run(query)
 	}
 
 	if err := thr.DoFor(context.Background(), query.Rate.Duration, f); err != nil {
@@ -91,27 +83,4 @@ func runQuery(db *pgxpool.Pool, query model.Query, t *model.Tables) error {
 	}
 
 	return nil
-}
-
-func generateArguments(args []model.Argument) ([]any, error) {
-	out := make([]any, len(args))
-
-	for i, arg := range args {
-		switch arg.Type {
-		case "gen":
-			var g random.GenGenerator
-			if err := arg.Processor.UnmarshalFunc(&g); err != nil {
-				return nil, fmt.Errorf("parsing gen processor for %s: %w", arg.Name, err)
-			}
-			out[i] = g.Generate()
-		case "set":
-			var g random.SetGenerator
-			if err := arg.Processor.UnmarshalFunc(&g); err != nil {
-				return nil, fmt.Errorf("parsing gen processor for %s: %w", arg.Name, err)
-			}
-			out[i] = g.Generate()
-		}
-	}
-
-	return out, nil
 }

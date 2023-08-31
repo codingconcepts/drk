@@ -1,17 +1,15 @@
 queries:
 
-  - name: populate
-    type: insert
+  - table: product
+    group: simulate write
     rate:
-      rps: 10000
-      duration: 1s
+      rps: 10
+      duration: 10s
     statement: |
-      UPSERT INTO product (id, name, market, amount, currency) VALUES ($1, $2, $3, $4, $5)
+      UPSERT INTO product (name, market, amount, currency)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
     arguments:
-      - name: id
-        type: gen
-        processor:
-          value: ${uuid}
       - name: name
         type: gen
         processor:
@@ -28,3 +26,23 @@ queries:
         type: gen
         processor:
           value: ${currency_short}
+
+  - table: product
+    group: simulate read
+    rate:
+      rps: 1000
+      duration: 5s
+    statement: |
+      SELECT
+        name,
+        market,
+        amount,
+        currency
+      FROM product
+      WHERE id = $1
+    arguments:
+      - name: id
+        type: ref
+        processor:
+          table: product
+          column: id
