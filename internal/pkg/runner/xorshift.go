@@ -3,23 +3,18 @@ package runner
 import "time"
 
 var (
-	r = newSplitMix64(time.Now().UnixNano())
+	r = &splitMix64{
+		s: uint64(time.Now().UnixNano()),
+	}
 )
 
 type splitMix64 struct {
 	s uint64
 }
 
-func newSplitMix64(seed int64) *splitMix64 {
-	return &splitMix64{
-		s: uint64(seed),
-	}
-}
-
 // Intn returns a non-negative pseudo-random int.
 func Intn(n int) int {
 	return int(r.uint64()&(1<<63-1)) % n
-
 }
 
 func (x *splitMix64) uint64() uint64 {
