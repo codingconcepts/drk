@@ -43,7 +43,7 @@ func (r *Runner) Query(table, stmt string, args []any) error {
 		return fmt.Errorf("making query: %w", err)
 	}
 
-	rows, err := read(dbRows)
+	rows, err := scan(dbRows)
 	if err != nil {
 		return fmt.Errorf("scanning rows: %v", err)
 	}

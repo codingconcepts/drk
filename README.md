@@ -30,3 +30,7 @@ go run drk.go \
   -c examples/drk.yaml \
   -u "postgres://root@localhost:26257/defaultdb?sslmode=disable"
 ```
+
+### Todos
+
+* Support for multiple VUs (virtual users).

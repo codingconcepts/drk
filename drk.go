@@ -89,7 +89,6 @@ func runQuery(r *runner.Runner, query model.Query, t *model.Tables) error {
 	}
 
 	done <- struct{}{}
-
 	return nil
 }
 
