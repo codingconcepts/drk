@@ -24,6 +24,7 @@ func scan(rows pgx.Rows) ([]map[string]any, error) {
 
 		for i, v := range scans {
 			if v != nil {
+				// Treat UUIDs as strings.
 				if fields[i].DataTypeOID == 2950 {
 					b := v.([16]byte)
 					v = fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
