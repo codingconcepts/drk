@@ -1,0 +1,8 @@
+tables:
+  - name: product
+    rows: 1000
+    columns:
+      - name: id
+        value: ${uuid}
+      - name: name
+        value: ${product_name}

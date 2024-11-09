@@ -1,0 +1,61 @@
+workflows:
+
+  casual_shopper:
+    vus: 10
+    setup_queries:
+      - create_shopper
+      - fetch_product_names
+    queries:
+      - name: browse_product
+        rate: 1/1s
+      - name: add_to_basket
+        rate: 1/5s
+
+activities:
+
+  create_shopper:
+    type: query
+    args:
+      - type: gen
+        value: email
+    query: |-
+      INSERT INTO shopper (email)
+      VALUES ($1)
+      RETURNING id
+
+  fetch_product_names:
+    type: query
+    args:
+      - type: int
+        min: 10
+        max: 10
+    query: |-
+      SELECT name
+      FROM product
+      ORDER BY random()
+      LIMIT $1;
+
+  browse_product:
+    args:
+      - type: ref
+        query: fetch_product_names
+        column: name
+    type: query
+    query: |-
+      SELECT id FROM product
+      WHERE name = $1
+  
+  add_to_basket:
+    args:
+      - type: ref
+        query: create_shopper
+        column: id
+      - type: ref
+        query: browse_product
+        column: id
+    type: query
+    query: |-
+      INSERT INTO basket (shopper_id, product_id)
+      VALUES ($1, $2)
+      ON CONFLICT (shopper_id, product_id) 
+      DO UPDATE SET quantity = basket.quantity + 1

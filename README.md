@@ -1,37 +1,59 @@
 # drk
 [wrk](https://github.com/wg/wrk) but for databases
 
-### Running an example
+Cluster
 
-Start a local CockroachDB cluster and hop onto it
-
-``` sh
-cockroach demo --insecure --no-example-database --max-sql-memory 1GiB
+```sh
+cockroach demo --insecure --no-example-database
 ```
 
-Create the database tables
+Objects
 
-``` sql
-CREATE TABLE "product" (
-  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "name" STRING NOT NULL,
-  "market" STRING NOT NULL,
-  "amount" DECIMAL NOT NULL,
-  "currency" STRING NOT NULL,
-
-  INDEX ("name", "market") STORING ("amount", "currency")
-);
+```sh
+cockroach sql \
+--host localhost \
+--insecure \
+-f examples/ecommerce/create.sql
 ```
 
-Run the test
+Seed data
 
-``` sh
-go run drk.go \
-  -c examples/drk.yaml \
-  -u "postgres://root@localhost:26257/defaultdb?sslmode=disable"
+```sh
+dgs gen data \
+--config examples/ecommerce/dgs.yaml \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--workers 1
+
+```
+
+Dry run
+
+```sh
+go run main.go \
+--config "examples/ecommerce/drk.yaml" \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--dry-run
+```
+
+Run
+
+```sh
+go run main.go \
+--config "examples/ecommerce/drk.yaml" \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--debug
+```
+
+Reset data
+
+```sql
+TRUNCATE basket CASCADE;
+TRUNCATE shopper CASCADE;
+TRUNCATE product CASCADE;
 ```
 
 ### Todos
 
-* **BUG** Fix concurrent map access in `RefGenerator.Generate`
-* **FEATURE** Support for multiple VUs (virtual users)
+* Give activites dependencies (e.g. add_to_basket can't run until browse_product has run)
+* Fix exec; I don't think it's working
+* Update ref to allow more than one item to be seleted (e.g. add multiple products to a basket)
