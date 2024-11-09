@@ -1,7 +1,7 @@
 workflows:
 
   casual_shopper:
-    vus: 10
+    vus: 1
     setup_queries:
       - create_shopper
       - fetch_product_names
@@ -10,6 +10,8 @@ workflows:
         rate: 1/1s
       - name: add_to_basket
         rate: 1/5s
+      - name: checkout
+        rate: 1/10s
 
 activities:
 
@@ -59,3 +61,12 @@ activities:
       VALUES ($1, $2)
       ON CONFLICT (shopper_id, product_id) 
       DO UPDATE SET quantity = basket.quantity + 1
+
+  checkout:
+    args:
+      - type: ref
+        query: create_shopper
+        column: id
+    type: query
+    query: |-
+      SELECT checkout($1)

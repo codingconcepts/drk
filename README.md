@@ -22,14 +22,15 @@ Seed data
 dgs gen data \
 --config examples/ecommerce/dgs.yaml \
 --url "postgres://root@localhost:26257?sslmode=disable" \
---workers 1
+--workers 1 \
+--batch 1
 
 ```
 
 Dry run
 
 ```sh
-go run main.go \
+go run drk.go \
 --config "examples/ecommerce/drk.yaml" \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --dry-run
@@ -38,7 +39,7 @@ go run main.go \
 Run
 
 ```sh
-go run main.go \
+go run drk.go \
 --config "examples/ecommerce/drk.yaml" \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --debug
@@ -57,3 +58,6 @@ TRUNCATE product CASCADE;
 * Give activites dependencies (e.g. add_to_basket can't run until browse_product has run)
 * Fix exec; I don't think it's working
 * Update ref to allow more than one item to be seleted (e.g. add multiple products to a basket)
+* Implement additional range generators
+* TEST!
+* Refactor out of drk.go

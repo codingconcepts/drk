@@ -1,8 +1,13 @@
 tables:
   - name: product
-    rows: 1000
+    rows: 1
     columns:
       - name: id
         value: ${uuid}
       - name: name
         value: ${product_name}
+      - name: price
+        range: float
+        props:
+          min: 10
+          max: 50
