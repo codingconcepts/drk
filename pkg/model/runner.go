@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -13,6 +14,7 @@ type Runner struct {
 	db       *sql.DB
 	cfg      *Drk
 	duration time.Duration
+	events   chan string
 	logger   *zerolog.Logger
 }
 
@@ -22,12 +24,17 @@ func NewRunner(cfg *Drk, url, driver string, duration time.Duration, logger *zer
 		return nil, fmt.Errorf("connecting to database: %w", err)
 	}
 
-	return &Runner{
+	r := Runner{
 		db:       db,
 		cfg:      cfg,
 		duration: duration,
+		events:   make(chan string, 1000),
 		logger:   logger,
-	}, nil
+	}
+
+	logger.Info().Float64("duration", r.duration.Seconds()).Msgf("runner")
+
+	return &r, nil
 }
 
 func (r *Runner) Run() error {
@@ -40,6 +47,10 @@ func (r *Runner) Run() error {
 	}
 
 	return eg.Wait()
+}
+
+func (r *Runner) GetEventStream() <-chan string {
+	return r.events
 }
 
 func (r *Runner) runWorkflow(workflow Workflow) error {
@@ -69,6 +80,7 @@ func (r *Runner) runVU(workflow Workflow) error {
 			return fmt.Errorf("running query %q: %w", query, err)
 		}
 
+		r.events <- query
 		vu.applyData(query, data)
 	}
 
@@ -95,22 +107,32 @@ func (r *Runner) runVU(workflow Workflow) error {
 }
 
 func (r *Runner) runActivity(vu *VU, name string, query Query, rate Rate, fin <-chan time.Time) error {
-	ticks := rate.Ticker()
+	ticks := time.NewTicker(rate.tickerInterval).C
 
 	for {
 		select {
 		case <-ticks:
-			r.logger.Debug().Msgf("[QUERY] %s", name)
+			depencenciesMet := lo.EveryBy(query.Args, func(a Arg) bool {
+				return a.dependencyCheck(vu)
+			})
+			if !depencenciesMet {
+				continue
+			}
+
+			r.logger.Debug().Str("query", name).Msg("starting")
 
 			data, err := r.runQuery(vu, query)
 			if err != nil {
-				r.logger.Error().Msgf("running query %q: %v", name, err)
+				r.logger.Error().Str("query", name).Msgf("error: %v", err)
+				continue
 			}
-			r.logger.Debug().Msgf("[DATA] %+v", data)
+			r.logger.Debug().Str("query", name).Msgf("[DATA] %+v", data)
 
+			r.events <- name
 			vu.applyData(name, data)
 
 		case <-fin:
+			r.logger.Info().Str("query", name).Msg("received termination signal")
 			return nil
 		}
 	}

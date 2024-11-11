@@ -12,6 +12,8 @@ workflows:
         rate: 1/5s
       - name: checkout
         rate: 1/30s
+      - name: check_order
+        rate: 1/10s
 
 activities:
 
@@ -69,4 +71,19 @@ activities:
         column: id
     type: query
     query: |-
-      SELECT checkout($1)
+      SELECT checkout($1) AS id
+
+  check_order:
+    args:
+      - type: ref
+        query: checkout
+        column: id
+      - type: ref
+        query: create_shopper
+        column: id
+    type: query
+    query: |-
+      SELECT *
+      FROM purchase
+      WHERE id = $1
+      AND shopper_id = $2

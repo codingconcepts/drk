@@ -26,14 +26,12 @@ func NewVU(logger *zerolog.Logger) *VU {
 }
 
 func (vu *VU) stagger(queries []WorkflowQuery) {
-	// Stagger using any time between now and the average query tick.
-	sumTicks := lo.SumBy(queries, func(a WorkflowQuery) time.Duration {
-		return a.Rate.tickerInterval
+	// Stagger using any time between now and the max query tick.
+	maxTicks := lo.MaxBy(queries, func(a, b WorkflowQuery) bool {
+		return a.Rate.tickerInterval > b.Rate.tickerInterval
 	})
 
-	avgTicks := sumTicks / time.Duration(len(queries))
-
-	staggerDuration := random.Interval(0, avgTicks)
+	staggerDuration := random.Interval(0, maxTicks.Rate.tickerInterval)
 	time.Sleep(staggerDuration)
 }
 

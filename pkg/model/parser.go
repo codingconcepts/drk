@@ -9,10 +9,10 @@ import (
 	"github.com/codingconcepts/drk/pkg/random"
 )
 
-func parseArgTypeGen(raw map[string]any) (genFunc, error) {
+func parseArgTypeGen(raw map[string]any) (genFunc, dependencyFunc, error) {
 	value, err := parseField[string](raw, "value")
 	if err != nil {
-		return nil, fmt.Errorf("parsing value: %w", err)
+		return nil, nil, fmt.Errorf("parsing value: %w", err)
 	}
 
 	return func(vu *VU) (any, error) {
@@ -21,10 +21,10 @@ func parseArgTypeGen(raw map[string]any) (genFunc, error) {
 			return nil, fmt.Errorf("missing generator: %q", value)
 		}
 		return g(), nil
-	}, nil
+	}, dependencyFuncNoop, nil
 }
 
-func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, error) {
+func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependencyFunc, error) {
 	return func(vu *VU) (any, error) {
 		switch strings.ToLower(argType) {
 		case "int":
@@ -79,18 +79,18 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, error) {
 		default:
 			return nil, fmt.Errorf("invalid scalar generator: %q", argType)
 		}
-	}, nil
+	}, dependencyFuncNoop, nil
 }
 
-func parseArgTypeRef(raw map[string]any) (genFunc, error) {
+func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 	queryRef, err := parseField[string](raw, "query")
 	if err != nil {
-		return nil, fmt.Errorf("parsing table: %w", err)
+		return nil, nil, fmt.Errorf("parsing table: %w", err)
 	}
 
 	columnRef, err := parseField[string](raw, "column")
 	if err != nil {
-		return nil, fmt.Errorf("parsing column: %w", err)
+		return nil, nil, fmt.Errorf("parsing column: %w", err)
 	}
 
 	genFunc := func(vu *VU) (any, error) {
@@ -116,7 +116,22 @@ func parseArgTypeRef(raw map[string]any) (genFunc, error) {
 		return cell, nil
 	}
 
-	return genFunc, err
+	depFunc := func(vu *VU) bool {
+		data, ok := vu.data[queryRef]
+		if !ok || len(data) == 0 {
+			vu.logger.Warn().Str("query", queryRef).Bool("found", ok).Any("data", vu.data).Msg("missing table data")
+			return false
+		}
+
+		_, ok = data[0][columnRef]
+		if !ok {
+			vu.logger.Warn().Str("column", columnRef).Bool("found", ok).Msg("missing cell data")
+		}
+
+		return ok
+	}
+
+	return genFunc, depFunc, err
 }
 
 func parseField[T any](m map[string]any, key string) (T, error) {

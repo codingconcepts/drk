@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
+	"text/tabwriter"
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/model"
@@ -51,8 +53,40 @@ func main() {
 		log.Fatalf("error creating runner: %v", err)
 	}
 
+	if !*debug {
+		go monitor(runner)
+	}
+
 	if err = runner.Run(); err != nil {
 		log.Fatalf("error running config: %v", err)
+	}
+}
+
+func monitor(r *model.Runner) {
+	events := r.GetEventStream()
+	printTicks := time.Tick(time.Second)
+
+	eventCounts := map[string]int{}
+
+	for {
+		select {
+		case event := <-events:
+			eventCounts[event]++
+
+		case <-printTicks:
+			keys := lo.Keys(eventCounts)
+			sort.Strings(keys)
+
+			w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
+			fmt.Fprintln(w, "Query\tRequests")
+
+			for _, key := range keys {
+				fmt.Fprintf(w, "%s\t%d\n", key, eventCounts[key])
+			}
+
+			fmt.Print("\033[H\033[2J")
+			w.Flush()
+		}
 	}
 }
 
