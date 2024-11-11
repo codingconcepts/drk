@@ -74,7 +74,5 @@ JOIN purchase_item pi ON p.id = pi.purchase_id;
 * Fix exec; I don't think it's working
 * Update ref to allow more than one item to be seleted (e.g. add multiple products to a basket)
 * TEST!
-* Refactor out of drk.go
-* Stagger VUs
 * Optionally pass args in workflow queries
 * Ramp VU's up and down
