@@ -1,5 +1,5 @@
-# drk (/dɝːk/)
-[wrk](https://github.com/wg/wrk) but for databases
+# drk
+[wrk](https://github.com/wg/wrk) but for databases and pronounced [/dɝːk/](https://dictionary.cambridge.org/pronunciation/english/dirk).
 
 Cluster
 
