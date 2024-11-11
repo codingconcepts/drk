@@ -1,0 +1,55 @@
+workflows:
+
+  casual_shopper:
+    vus: 50
+    setup_queries:
+      - open_account
+      - fetch_accounts
+    queries:
+      - name: make_transfer
+        rate: 1/1s
+
+activities:
+
+  open_account:
+    type: query
+    args:
+      - type: gen
+        value: email
+      - type: float
+        min: 1000.0
+        max: 10000.0
+    query: |-
+      SELECT open_account($1, $2) AS id
+
+  fetch_accounts:
+    type: query
+    query: |-
+      SELECT id FROM account LIMIT 100
+
+  make_transfer:
+    args:
+      - type: ref
+        query: fetch_accounts
+        column: id
+      - type: ref
+        query: fetch_accounts
+        column: id
+      - type: float
+        min: 10.0
+        max: 100.0
+    type: query
+    query: |-
+      WITH update_stmt AS (
+        UPDATE account SET
+          balance = CASE 
+                      WHEN id = $1 THEN balance + $3
+                      WHEN id = $2 THEN balance - $3
+                    END
+        WHERE id IN ($1, $2)
+        RETURNING id, balance
+      )
+      INSERT INTO transaction_history (src_account_id, dst_account_id, amount, ts)
+      SELECT $1, $2, $3, NOW()
+      FROM update_stmt
+      WHERE id = $1
