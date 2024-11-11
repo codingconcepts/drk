@@ -1,6 +1,6 @@
 tables:
   - name: product
-    rows: 1
+    rows: 1000
     columns:
       - name: id
         value: ${uuid}

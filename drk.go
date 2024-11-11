@@ -9,9 +9,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/brianvoe/gofakeit/v7"
+	"github.com/codingconcepts/drk/pkg/random"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -21,11 +22,6 @@ import (
 
 var (
 	logger zerolog.Logger
-
-	Generators = map[string]func() any{
-		"email":        func() any { return gofakeit.Email() },
-		"product_name": func() any { return gofakeit.ProductName() },
-	}
 )
 
 func main() {
@@ -43,7 +39,7 @@ func main() {
 	}
 
 	logger = zerolog.New(zerolog.ConsoleWriter{
-		Out: os.Stderr,
+		Out: os.Stdout,
 		PartsExclude: []string{
 			zerolog.TimestampFieldName,
 		},
@@ -125,11 +121,14 @@ func (r *Runner) runVU(workflow Workflow) error {
 
 		data, err := r.runQuery(vu, act)
 		if err != nil {
-			return fmt.Errorf("fetching data: %q", query)
+			return fmt.Errorf("running query %q: %w", query, err)
 		}
 
 		vu.applyData(query, data)
 	}
+
+	// Stagger VU.
+	vu.stagger(workflow.Queries)
 
 	// Start VU.
 	var eg errgroup.Group
@@ -206,7 +205,22 @@ func (r *Runner) runQuery(vu *VU, query Query) ([]map[string]any, error) {
 	}
 }
 
+func (vu *VU) stagger(queries []WorkflowQuery) {
+	// Stagger using any time between now and the average query tick.
+	sumTicks := lo.SumBy(queries, func(a WorkflowQuery) time.Duration {
+		return a.Rate.tickerInterval
+	})
+
+	avgTicks := sumTicks / time.Duration(len(queries))
+
+	staggerDuration := random.Interval(0, avgTicks)
+	time.Sleep(staggerDuration)
+}
+
 func (vu *VU) applyData(query string, data []map[string]any) {
+	vu.dataMu.Lock()
+	defer vu.dataMu.Unlock()
+
 	vu.data[query] = data
 }
 
@@ -259,7 +273,8 @@ func loadConfig(path string) (*Drk, error) {
 
 type VU struct {
 	// Map of query names to columns to rows.
-	data map[string][]map[string]any
+	dataMu sync.RWMutex
+	data   map[string][]map[string]any
 }
 
 func newVU() *VU {
@@ -275,7 +290,7 @@ type Drk struct {
 	Activities map[string]Query    `yaml:"activities"`
 }
 
-type Queries struct {
+type WorkflowQuery struct {
 	Name string `yaml:"name"`
 	Rate Rate   `yaml:"rate"`
 }
@@ -289,11 +304,12 @@ type Query struct {
 type Rate struct {
 	Times    int
 	Interval time.Duration
+
+	tickerInterval time.Duration
 }
 
 func (r Rate) Ticker() <-chan time.Time {
-	tickInterval := r.Interval / time.Duration(r.Times)
-	return time.Tick(tickInterval)
+	return time.Tick(r.tickerInterval)
 }
 
 func (r *Rate) UnmarshalYAML(node *yaml.Node) error {
@@ -308,6 +324,8 @@ func (r *Rate) UnmarshalYAML(node *yaml.Node) error {
 		return fmt.Errorf("parsing interval: %w", err)
 	}
 
+	r.tickerInterval = r.Interval / time.Duration(r.Times)
+
 	return nil
 }
 
@@ -316,21 +334,14 @@ func (r Rate) String() string {
 }
 
 type Workflow struct {
-	Vus          int       `yaml:"vus"`
-	SetupQueries []string  `yaml:"setup_queries"`
-	Queries      []Queries `yaml:"queries"`
-}
-
-type CreateShopper struct {
-	Type  string `yaml:"type"`
-	Args  []Arg  `yaml:"args"`
-	Query string `yaml:"query"`
+	Vus          int             `yaml:"vus"`
+	SetupQueries []string        `yaml:"setup_queries"`
+	Queries      []WorkflowQuery `yaml:"queries"`
 }
 
 type Arg struct {
 	Type string `yaml:"type"`
 
-	// Function for generating values.
 	generator genFunc
 }
 
@@ -372,7 +383,7 @@ func parseArgTypeGen(raw map[string]any) (genFunc, error) {
 	}
 
 	return func(vu *VU) (any, error) {
-		g, ok := Generators[value]
+		g, ok := random.Replacements[value]
 		if !ok {
 			return nil, fmt.Errorf("missing generator: %q", value)
 		}
@@ -383,7 +394,7 @@ func parseArgTypeGen(raw map[string]any) (genFunc, error) {
 func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, error) {
 	return func(vu *VU) (any, error) {
 		switch strings.ToLower(argType) {
-		case "int", "integer":
+		case "int":
 			min, err := parseField[int](raw, "min")
 			if err != nil {
 				return nil, fmt.Errorf("parsing min: %w", err)
@@ -394,11 +405,43 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, error) {
 				return nil, fmt.Errorf("parsing max: %w", err)
 			}
 
-			if min == max {
-				return min, nil
+			return random.Int(min, max), nil
+
+		case "float":
+			min, err := parseField[float64](raw, "min")
+			if err != nil {
+				return nil, fmt.Errorf("parsing min: %w", err)
 			}
 
-			return rand.IntN(max-min) + min, nil
+			max, err := parseField[float64](raw, "max")
+			if err != nil {
+				return nil, fmt.Errorf("parsing max: %w", err)
+			}
+
+			return random.Float(min, max), nil
+
+		case "timestamp":
+			minStr, err := parseField[string](raw, "min")
+			if err != nil {
+				return nil, fmt.Errorf("parsing min: %w", err)
+			}
+
+			maxStr, err := parseField[string](raw, "max")
+			if err != nil {
+				return nil, fmt.Errorf("parsing max: %w", err)
+			}
+
+			min, err := time.Parse(time.RFC3339, minStr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing max as timestamp: %w", err)
+			}
+
+			max, err := time.Parse(time.RFC3339, maxStr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing max as timestamp: %w", err)
+			}
+
+			return random.Timestamp(min, max), nil
 
 		default:
 			return nil, fmt.Errorf("invalid scalar generator: %q", argType)
@@ -417,14 +460,19 @@ func parseArgTypeRef(raw map[string]any) (genFunc, error) {
 		return nil, fmt.Errorf("parsing column: %w", err)
 	}
 
-	return func(vu *VU) (any, error) {
-		logger.Debug().Msgf("[REF] %s - %s", queryRef, columnRef)
+	genFunc := func(vu *VU) (any, error) {
+		logger.Debug().Msgf("[REF] gen %s - %s", queryRef, columnRef)
 
+		vu.dataMu.RLock()
+		defer vu.dataMu.RUnlock()
 		query, ok := vu.data[queryRef]
 		if !ok {
 			return nil, fmt.Errorf("missing query: %q", query)
 		}
-		logger.Debug().Msgf("\tquery %s", query)
+
+		if len(query) == 0 {
+			return nil, fmt.Errorf("no data found for %s - %s", queryRef, columnRef)
+		}
 
 		row := rand.IntN(len(query))
 		cell, ok := query[row][columnRef]
@@ -433,7 +481,9 @@ func parseArgTypeRef(raw map[string]any) (genFunc, error) {
 		}
 
 		return cell, nil
-	}, nil
+	}
+
+	return genFunc, err
 }
 
 func parseField[T any](m map[string]any, key string) (T, error) {
