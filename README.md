@@ -1,4 +1,4 @@
-# drk
+# drk (/dɝːk/)
 [wrk](https://github.com/wg/wrk) but for databases
 
 Cluster
