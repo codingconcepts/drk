@@ -1,4 +1,4 @@
-package random
+package model
 
 import (
 	"math/rand/v2"

@@ -1,17 +1,19 @@
-CREATE TABLE shopper (
+CREATE TABLE IF NOT EXISTS shopper (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "email" STRING NOT NULL,
 
   UNIQUE("email")
 );
 
-CREATE TABLE product (
+CREATE TABLE IF NOT EXISTS product (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "name" STRING NOT NULL,
-  "price" DECIMAL NOT NULL
+  "price" DECIMAL NOT NULL,
+
+  INDEX ("name")
 );
 
-CREATE TABLE basket (
+CREATE TABLE IF NOT EXISTS basket (
   "shopper_id" UUID NOT NULL REFERENCES shopper("id"),
   "product_id" UUID NOT NULL REFERENCES product("id"),
   "quantity" INT NOT NULL DEFAULT 1,
@@ -19,14 +21,19 @@ CREATE TABLE basket (
   PRIMARY KEY ("shopper_id", "product_id")
 );
 
-CREATE TABLE purchase (
+CREATE TYPE IF NOT EXISTS purchase_status AS ENUM ('pending', 'payment_successful', 'payment_failed', 'dispatched');
+
+CREATE TABLE IF NOT EXISTS purchase (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "shopper_id" UUID NOT NULL REFERENCES shopper("id"),
   "total" DECIMAL NOT NULL,
-  "ts" TIMESTAMPTZ NOT NULL DEFAULT now()
+  "status" purchase_status NOT NULL DEFAULT 'pending',
+  "ts" TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  INDEX ("shopper_id") STORING ("total", "ts")
 );
 
-CREATE TABLE purchase_item (
+CREATE TABLE IF NOT EXISTS purchase_item (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "purchase_id" UUID NOT NULL REFERENCES purchase("id"),
   "product_id" UUID NOT NULL REFERENCES product("id"),

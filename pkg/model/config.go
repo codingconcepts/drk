@@ -94,6 +94,11 @@ func (a *Arg) UnmarshalYAML(unmarshal func(any) error) error {
 			return fmt.Errorf("parsing ref arg type: %w", err)
 		}
 
+	case "set":
+		if a.generator, a.dependencyCheck, err = parseArgTypeSet(raw); err != nil {
+			return fmt.Errorf("parsing ref arg type: %w", err)
+		}
+
 	default:
 		if a.generator, a.dependencyCheck, err = parseArgTypeScalar(argType, raw); err != nil {
 			return fmt.Errorf("parsing scalar arg type: %w", err)

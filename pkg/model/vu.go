@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/codingconcepts/drk/pkg/random"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 )
@@ -31,7 +30,7 @@ func (vu *VU) stagger(queries []WorkflowQuery) {
 		return a.Rate.tickerInterval > b.Rate.tickerInterval
 	})
 
-	staggerDuration := random.Interval(0, maxTicks.Rate.tickerInterval)
+	staggerDuration := Interval(0, maxTicks.Rate.tickerInterval)
 	time.Sleep(staggerDuration)
 }
 

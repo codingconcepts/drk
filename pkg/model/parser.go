@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/random"
+	"github.com/samber/lo"
 )
 
 func parseArgTypeGen(raw map[string]any) (genFunc, dependencyFunc, error) {
@@ -38,7 +39,7 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 				return nil, fmt.Errorf("parsing max: %w", err)
 			}
 
-			return random.Int(min, max), nil
+			return Int(min, max), nil
 
 		case "float":
 			min, err := parseField[float64](raw, "min")
@@ -51,7 +52,7 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 				return nil, fmt.Errorf("parsing max: %w", err)
 			}
 
-			return random.Float(min, max), nil
+			return Float(min, max), nil
 
 		case "timestamp":
 			minStr, err := parseField[string](raw, "min")
@@ -74,7 +75,7 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 				return nil, fmt.Errorf("parsing max as timestamp: %w", err)
 			}
 
-			return random.Timestamp(min, max), nil
+			return Timestamp(min, max), nil
 
 		default:
 			return nil, fmt.Errorf("invalid scalar generator: %q", argType)
@@ -119,13 +120,13 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 	depFunc := func(vu *VU) bool {
 		data, ok := vu.data[queryRef]
 		if !ok || len(data) == 0 {
-			vu.logger.Warn().Str("query", queryRef).Bool("found", ok).Any("data", vu.data).Msg("missing table data")
+			vu.logger.Info().Str("query", queryRef).Bool("found", ok).Any("data", vu.data).Msg("missing table data")
 			return false
 		}
 
 		_, ok = data[0][columnRef]
 		if !ok {
-			vu.logger.Warn().Str("column", columnRef).Bool("found", ok).Msg("missing cell data")
+			vu.logger.Info().Str("column", columnRef).Bool("found", ok).Msg("missing cell data")
 		}
 
 		return ok
@@ -134,17 +135,49 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 	return genFunc, depFunc, err
 }
 
+func parseArgTypeSet(raw map[string]any) (genFunc, dependencyFunc, error) {
+	values, err := parseField[[]any](raw, "values")
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing values: %w", err)
+	}
+
+	var weights []int
+	rawWeights, err := parseField[[]any](raw, "weights")
+	if err != nil {
+		if _, ok := err.(FieldMissingErr); ok {
+			weights = defaultWeights(len(values))
+		} else {
+			return nil, nil, fmt.Errorf("parsing values: %w", err)
+		}
+	} else {
+		weights = lo.Map(rawWeights, func(w any, _ int) int {
+			return w.(int)
+		})
+	}
+
+	weightedItems, err := buildWeightedItems(values, weights)
+	if err != nil {
+		return nil, nil, fmt.Errorf("building weighted items: %w", err)
+	}
+
+	genFunc := func(vu *VU) (any, error) {
+		vu.logger.Debug().Msgf("[SET] gen %v", values)
+
+		return weightedItems.choose(), nil
+	}
+
+	return genFunc, dependencyFuncNoop, nil
+}
+
 func parseField[T any](m map[string]any, key string) (T, error) {
 	valueRaw, ok := m[key]
 	if !ok {
-		var zero T
-		return zero, fmt.Errorf("missing value")
+		return *new(T), FieldMissingErr{Name: key}
 	}
 
 	value, ok := valueRaw.(T)
 	if !ok {
-		var zero T
-		return zero, fmt.Errorf("value is not of expected type")
+		return *new(T), fmt.Errorf("field type mismatch (got: %T exp: %T)", value, *new(T))
 	}
 
 	return value, nil

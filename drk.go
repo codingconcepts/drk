@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/model"
+	"github.com/codingconcepts/ring"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -35,7 +36,7 @@ func main() {
 		PartsExclude: []string{
 			zerolog.TimestampFieldName,
 		},
-	}).Level(lo.Ternary(*debug, zerolog.DebugLevel, zerolog.InfoLevel))
+	}).Level(lo.Ternary(*debug, zerolog.DebugLevel, zerolog.WarnLevel))
 
 	cfg, err := loadConfig(*config)
 	if err != nil {
@@ -67,21 +68,37 @@ func monitor(r *model.Runner) {
 	printTicks := time.Tick(time.Second)
 
 	eventCounts := map[string]int{}
+	eventLatencies := map[string]*ring.Ring[time.Duration]{}
 
 	for {
 		select {
 		case event := <-events:
-			eventCounts[event]++
+			// Add to event count.
+			eventCounts[event.Name]++
+
+			// Add to event latencies.
+			if _, ok := eventLatencies[event.Name]; !ok {
+				eventLatencies[event.Name] = ring.New[time.Duration](1000)
+			}
+			eventLatencies[event.Name].Add(event.Duration)
 
 		case <-printTicks:
 			keys := lo.Keys(eventCounts)
 			sort.Strings(keys)
 
 			w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
-			fmt.Fprintln(w, "Query\tRequests")
+			fmt.Fprintln(w, "Query\tRequests\tAverage Latency")
 
 			for _, key := range keys {
-				fmt.Fprintf(w, "%s\t%d\n", key, eventCounts[key])
+				latencies := eventLatencies[key].Slice()
+
+				fmt.Fprintf(
+					w,
+					"%s\t%d\t%s\n",
+					key,
+					eventCounts[key],
+					lo.Sum(latencies)/time.Duration(len(latencies)),
+				)
 			}
 
 			fmt.Print("\033[H\033[2J")

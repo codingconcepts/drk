@@ -14,7 +14,7 @@ type Runner struct {
 	db       *sql.DB
 	cfg      *Drk
 	duration time.Duration
-	events   chan string
+	events   chan Event
 	logger   *zerolog.Logger
 }
 
@@ -28,7 +28,7 @@ func NewRunner(cfg *Drk, url, driver string, duration time.Duration, logger *zer
 		db:       db,
 		cfg:      cfg,
 		duration: duration,
-		events:   make(chan string, 1000),
+		events:   make(chan Event, 1000),
 		logger:   logger,
 	}
 
@@ -49,7 +49,7 @@ func (r *Runner) Run() error {
 	return eg.Wait()
 }
 
-func (r *Runner) GetEventStream() <-chan string {
+func (r *Runner) GetEventStream() <-chan Event {
 	return r.events
 }
 
@@ -75,12 +75,12 @@ func (r *Runner) runVU(workflow Workflow) error {
 			return fmt.Errorf("missing activity: %q", query)
 		}
 
-		data, err := r.runQuery(vu, act)
+		data, taken, err := r.runQuery(vu, act)
 		if err != nil {
 			return fmt.Errorf("running query %q: %w", query, err)
 		}
 
-		r.events <- query
+		r.events <- Event{Name: query, Duration: taken}
 		vu.applyData(query, data)
 	}
 
@@ -121,14 +121,14 @@ func (r *Runner) runActivity(vu *VU, name string, query Query, rate Rate, fin <-
 
 			r.logger.Debug().Str("query", name).Msg("starting")
 
-			data, err := r.runQuery(vu, query)
+			data, taken, err := r.runQuery(vu, query)
 			if err != nil {
 				r.logger.Error().Str("query", name).Msgf("error: %v", err)
 				continue
 			}
 			r.logger.Debug().Str("query", name).Msgf("[DATA] %+v", data)
 
-			r.events <- name
+			r.events <- Event{Name: name, Duration: taken}
 			vu.applyData(name, data)
 
 		case <-fin:
@@ -138,37 +138,39 @@ func (r *Runner) runActivity(vu *VU, name string, query Query, rate Rate, fin <-
 	}
 }
 
-func (r *Runner) runQuery(vu *VU, query Query) ([]map[string]any, error) {
+func (r *Runner) runQuery(vu *VU, query Query) ([]map[string]any, time.Duration, error) {
 	args, err := vu.generateArgs(query.Args)
 	if err != nil {
-		return nil, fmt.Errorf("generating args: %w", err)
+		return nil, 0, fmt.Errorf("generating args: %w", err)
 	}
 
 	r.logger.Debug().Msgf("[STMT] %s", query.Query)
 	r.logger.Debug().Msgf("\t[ARGS] %v", args)
 
+	start := time.Now()
+
 	switch query.Type {
 	case "query":
 		rows, err := r.db.Query(query.Query, args...)
 		if err != nil {
-			return nil, fmt.Errorf("running query: %w", err)
+			return nil, 0, fmt.Errorf("running query: %w", err)
 		}
 
 		data, err := readRows(rows)
 		if err != nil {
-			return nil, fmt.Errorf("reading rows: %w", err)
+			return nil, 0, fmt.Errorf("reading rows: %w", err)
 		}
-		return data, nil
+		return data, time.Since(start), nil
 
 	case "exec":
 		_, err = r.db.Exec(query.Query, args...)
 		if err != nil {
-			return nil, fmt.Errorf("running query: %w", err)
+			return nil, 0, fmt.Errorf("running query: %w", err)
 		}
-		return nil, nil
+		return nil, time.Since(start), nil
 
 	default:
-		return nil, fmt.Errorf("unsupported query type: %q", query.Type)
+		return nil, 0, fmt.Errorf("unsupported query type: %q", query.Type)
 	}
 }
 

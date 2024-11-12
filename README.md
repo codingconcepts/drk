@@ -23,6 +23,7 @@ make payments_example
 
 ### Todos
 
+* Support sets of `any` type
 * Fix all of the errors in the e-Commerce example before 50 checkouts
 * Configure a workflow query for the exec type to test it
 * Add the ability to ensure uniqueness across two arg values (re-running until unique, or crashing after X attempts)

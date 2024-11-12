@@ -1,5 +1,7 @@
 github.com/brianvoe/gofakeit/v7 v7.1.2 h1:vSKaVScNhWVpf1rlyEKSvO8zKZfuDtGqoIHT//iNNb8=
 github.com/brianvoe/gofakeit/v7 v7.1.2/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
+github.com/codingconcepts/ring v0.0.0-20240125133104-23e758eb5030 h1:dgfym8uCoZk65lC0k0V7X/4GCivf68NvjRuB9sKSNWk=
+github.com/codingconcepts/ring v0.0.0-20240125133104-23e758eb5030/go.mod h1:WFOWoiPh1A5SnVLgiR5w1Z2zdEidO8TMkO2WQUX91+s=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
