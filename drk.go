@@ -73,14 +73,16 @@ func monitor(r *model.Runner) {
 	for {
 		select {
 		case event := <-events:
+			key := fmt.Sprintf("%s.%s", event.Workflow, event.Name)
+
 			// Add to event count.
-			eventCounts[event.Name]++
+			eventCounts[key]++
 
 			// Add to event latencies.
-			if _, ok := eventLatencies[event.Name]; !ok {
-				eventLatencies[event.Name] = ring.New[time.Duration](1000)
+			if _, ok := eventLatencies[key]; !ok {
+				eventLatencies[key] = ring.New[time.Duration](1000)
 			}
-			eventLatencies[event.Name].Add(event.Duration)
+			eventLatencies[key].Add(event.Duration)
 
 		case <-printTicks:
 			keys := lo.Keys(eventCounts)

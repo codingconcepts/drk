@@ -1,17 +1,17 @@
 ecommerce_example:
 	cockroach sql \
-		--host localhost \
+		--host ${CRDB_IP} \
 		--insecure \
 		-f examples/ecommerce/create.sql
 
 	cockroach sql \
-		--host localhost \
+		--host ${CRDB_IP} \
 		--insecure \
 		-f examples/ecommerce/populate.sql
 	
 	go run drk.go \
 		--config "examples/ecommerce/drk.yaml" \
-		--url "postgres://root@localhost:26257?sslmode=disable"
+		--url "postgres://root@${CRDB_IP}:26257?sslmode=disable"
 
 payments_example:
 	cockroach sql \

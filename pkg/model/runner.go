@@ -40,9 +40,9 @@ func NewRunner(cfg *Drk, url, driver string, duration time.Duration, logger *zer
 func (r *Runner) Run() error {
 	var eg errgroup.Group
 
-	for _, workflow := range r.cfg.Workflows {
+	for name, workflow := range r.cfg.Workflows {
 		eg.Go(func() error {
-			return r.runWorkflow(workflow)
+			return r.runWorkflow(name, workflow)
 		})
 	}
 
@@ -53,19 +53,19 @@ func (r *Runner) GetEventStream() <-chan Event {
 	return r.events
 }
 
-func (r *Runner) runWorkflow(workflow Workflow) error {
+func (r *Runner) runWorkflow(name string, workflow Workflow) error {
 	var eg errgroup.Group
 
 	for vu := 0; vu < workflow.Vus; vu++ {
 		eg.Go(func() error {
-			return r.runVU(workflow)
+			return r.runVU(name, workflow)
 		})
 	}
 
 	return eg.Wait()
 }
 
-func (r *Runner) runVU(workflow Workflow) error {
+func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 	// Prepare VU.
 	vu := NewVU(r.logger)
 
@@ -80,7 +80,7 @@ func (r *Runner) runVU(workflow Workflow) error {
 			return fmt.Errorf("running query %q: %w", query, err)
 		}
 
-		r.events <- Event{Name: query, Duration: taken}
+		r.events <- Event{Workflow: workflowName, Name: query, Duration: taken}
 		vu.applyData(query, data)
 	}
 
@@ -99,14 +99,14 @@ func (r *Runner) runVU(workflow Workflow) error {
 		}
 
 		eg.Go(func() error {
-			return r.runActivity(vu, query.Name, act, query.Rate, deadline)
+			return r.runActivity(vu, workflowName, query.Name, act, query.Rate, deadline)
 		})
 	}
 
 	return eg.Wait()
 }
 
-func (r *Runner) runActivity(vu *VU, name string, query Query, rate Rate, fin <-chan time.Time) error {
+func (r *Runner) runActivity(vu *VU, workflowName, queryName string, query Query, rate Rate, fin <-chan time.Time) error {
 	ticks := time.NewTicker(rate.tickerInterval).C
 
 	for {
@@ -119,20 +119,20 @@ func (r *Runner) runActivity(vu *VU, name string, query Query, rate Rate, fin <-
 				continue
 			}
 
-			r.logger.Debug().Str("query", name).Msg("starting")
+			r.logger.Debug().Str("query", queryName).Msg("starting")
 
 			data, taken, err := r.runQuery(vu, query)
 			if err != nil {
-				r.logger.Error().Str("query", name).Msgf("error: %v", err)
+				r.logger.Error().Str("query", queryName).Msgf("error: %v", err)
 				continue
 			}
-			r.logger.Debug().Str("query", name).Msgf("[DATA] %+v", data)
+			r.logger.Debug().Str("query", queryName).Msgf("[DATA] %+v", data)
 
-			r.events <- Event{Name: name, Duration: taken}
-			vu.applyData(name, data)
+			r.events <- Event{Workflow: workflowName, Name: queryName, Duration: taken}
+			vu.applyData(queryName, data)
 
 		case <-fin:
-			r.logger.Info().Str("query", name).Msg("received termination signal")
+			r.logger.Info().Str("query", queryName).Msg("received termination signal")
 			return nil
 		}
 	}
