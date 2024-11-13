@@ -162,6 +162,72 @@ func TestParseArgTypeScalar(t *testing.T) {
 			},
 		},
 		{
+			name:    "missing min",
+			argType: "float",
+			raw: map[string]any{
+				"max": 10.0,
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := fmt.Errorf("parsing min: %w", FieldMissingErr{Name: "min"})
+				assert.Equal(t, exp, err)
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "invalid min",
+			argType: "float",
+			raw: map[string]any{
+				"min": "invalid",
+				"max": 10.0,
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := "parsing min: field type mismatch (got: string exp: float64)"
+				assert.Equal(t, exp, err.Error())
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "missing max",
+			argType: "float",
+			raw: map[string]any{
+				"min": 10.0,
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := fmt.Errorf("parsing max: %w", FieldMissingErr{Name: "max"})
+				assert.Equal(t, exp, err)
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "invalid max",
+			argType: "float",
+			raw: map[string]any{
+				"min": 10.0,
+				"max": "invalid",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := "parsing max: field type mismatch (got: string exp: float64)"
+				assert.Equal(t, exp, err.Error())
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
 			name:    "valid float generator - min eq max",
 			argType: "float",
 			raw: map[string]any{
@@ -173,6 +239,72 @@ func TestParseArgTypeScalar(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.Equal(t, 10.0, raw.(float64))
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "missing min",
+			argType: "timestamp",
+			raw: map[string]any{
+				"max": "2024-11-12T19:13:07Z",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := fmt.Errorf("parsing min: %w", FieldMissingErr{Name: "min"})
+				assert.Equal(t, exp, err)
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "invalid min",
+			argType: "timestamp",
+			raw: map[string]any{
+				"min": "invalid",
+				"max": "2024-11-12T19:13:07Z",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := "parsing max as timestamp: parsing time \"invalid\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"invalid\" as \"2006\""
+				assert.Equal(t, exp, err.Error())
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "missing max",
+			argType: "timestamp",
+			raw: map[string]any{
+				"min": "2024-11-12T19:13:07Z",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := fmt.Errorf("parsing max: %w", FieldMissingErr{Name: "max"})
+				assert.Equal(t, exp, err)
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "invalid max",
+			argType: "timestamp",
+			raw: map[string]any{
+				"min": "2024-11-12T19:13:07Z",
+				"max": "invalid",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := "parsing max as timestamp: parsing time \"invalid\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"invalid\" as \"2006\""
+				assert.Equal(t, exp, err.Error())
+				assert.Nil(t, raw)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc) {
 				assert.True(t, f(nil))
@@ -191,6 +323,72 @@ func TestParseArgTypeScalar(t *testing.T) {
 
 				exp := time.Date(2024, 11, 12, 19, 13, 7, 0, time.UTC)
 				assert.Equal(t, exp, raw.(time.Time))
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "missing min",
+			argType: "interval",
+			raw: map[string]any{
+				"max": "1h",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := fmt.Errorf("parsing min: %w", FieldMissingErr{Name: "min"})
+				assert.Equal(t, exp, err)
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "invalid min",
+			argType: "interval",
+			raw: map[string]any{
+				"min": "invalid",
+				"max": "1h",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := "parsing min as duration: time: invalid duration \"invalid\""
+				assert.Equal(t, exp, err.Error())
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "missing max",
+			argType: "interval",
+			raw: map[string]any{
+				"min": "1h",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := fmt.Errorf("parsing max: %w", FieldMissingErr{Name: "max"})
+				assert.Equal(t, exp, err)
+				assert.Nil(t, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "invalid max",
+			argType: "interval",
+			raw: map[string]any{
+				"min": "1h",
+				"max": "invalid",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := "parsing max as duration: time: invalid duration \"invalid\""
+				assert.Equal(t, exp, err.Error())
+				assert.Nil(t, raw)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc) {
 				assert.True(t, f(nil))
@@ -285,6 +483,19 @@ func TestParseArgTypeScalar(t *testing.T) {
 				min := time.Hour*1 + time.Minute*2 + time.Second*3
 				max := time.Hour*2 + time.Minute*3 + time.Second*4
 				assert.True(t, act >= min && act <= max)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name:    "unsupported scalar type",
+			argType: "unsupported",
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				exp := "invalid scalar generator: \"unsupported\""
+				assert.Equal(t, exp, err.Error())
+				assert.Nil(t, raw)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc) {
 				assert.True(t, f(nil))

@@ -70,7 +70,7 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 
 			min, err := time.ParseDuration(minStr)
 			if err != nil {
-				return nil, fmt.Errorf("parsing max as duration: %w", err)
+				return nil, fmt.Errorf("parsing min as duration: %w", err)
 			}
 
 			max, err := time.ParseDuration(maxStr)
