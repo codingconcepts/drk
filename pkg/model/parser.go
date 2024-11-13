@@ -29,40 +29,25 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 	return func(vu *VU) (any, error) {
 		switch strings.ToLower(argType) {
 		case "int":
-			min, err := parseField[int](raw, "min")
+			min, max, err := parseMinMax[int](raw)
 			if err != nil {
-				return nil, fmt.Errorf("parsing min: %w", err)
-			}
-
-			max, err := parseField[int](raw, "max")
-			if err != nil {
-				return nil, fmt.Errorf("parsing max: %w", err)
+				return nil, err
 			}
 
 			return Int(min, max), nil
 
 		case "float":
-			min, err := parseField[float64](raw, "min")
+			min, max, err := parseMinMax[float64](raw)
 			if err != nil {
-				return nil, fmt.Errorf("parsing min: %w", err)
-			}
-
-			max, err := parseField[float64](raw, "max")
-			if err != nil {
-				return nil, fmt.Errorf("parsing max: %w", err)
+				return nil, err
 			}
 
 			return Float(min, max), nil
 
 		case "timestamp":
-			minStr, err := parseField[string](raw, "min")
+			minStr, maxStr, err := parseMinMax[string](raw)
 			if err != nil {
-				return nil, fmt.Errorf("parsing min: %w", err)
-			}
-
-			maxStr, err := parseField[string](raw, "max")
-			if err != nil {
-				return nil, fmt.Errorf("parsing max: %w", err)
+				return nil, err
 			}
 
 			min, err := time.Parse(time.RFC3339, minStr)
@@ -76,6 +61,24 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 			}
 
 			return Timestamp(min, max), nil
+
+		case "interval", "duration":
+			minStr, maxStr, err := parseMinMax[string](raw)
+			if err != nil {
+				return nil, err
+			}
+
+			min, err := time.ParseDuration(minStr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing max as duration: %w", err)
+			}
+
+			max, err := time.ParseDuration(maxStr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing max as duration: %w", err)
+			}
+
+			return Interval(min, max), nil
 
 		default:
 			return nil, fmt.Errorf("invalid scalar generator: %q", argType)
@@ -101,7 +104,7 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 		defer vu.dataMu.RUnlock()
 		query, ok := vu.data[queryRef]
 		if !ok {
-			return nil, fmt.Errorf("missing query: %q", query)
+			return nil, fmt.Errorf("missing query: %q", queryRef)
 		}
 
 		if len(query) == 0 {
@@ -111,7 +114,7 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 		row := rand.IntN(len(query))
 		cell, ok := query[row][columnRef]
 		if !ok {
-			return nil, fmt.Errorf("missing column: %q", cell)
+			return nil, fmt.Errorf("missing column: %q", columnRef)
 		}
 
 		return cell, nil
@@ -169,6 +172,20 @@ func parseArgTypeSet(raw map[string]any) (genFunc, dependencyFunc, error) {
 	return genFunc, dependencyFuncNoop, nil
 }
 
+func parseMinMax[T any](raw map[string]any) (T, T, error) {
+	min, err := parseField[T](raw, "min")
+	if err != nil {
+		return *new(T), *new(T), fmt.Errorf("parsing min: %w", err)
+	}
+
+	max, err := parseField[T](raw, "max")
+	if err != nil {
+		return *new(T), *new(T), fmt.Errorf("parsing max: %w", err)
+	}
+
+	return min, max, nil
+}
+
 func parseField[T any](m map[string]any, key string) (T, error) {
 	valueRaw, ok := m[key]
 	if !ok {
@@ -177,7 +194,7 @@ func parseField[T any](m map[string]any, key string) (T, error) {
 
 	value, ok := valueRaw.(T)
 	if !ok {
-		return *new(T), fmt.Errorf("field type mismatch (got: %T exp: %T)", value, *new(T))
+		return *new(T), fmt.Errorf("field type mismatch (got: %T exp: %T)", valueRaw, *new(T))
 	}
 
 	return value, nil

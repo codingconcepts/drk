@@ -1,3 +1,10 @@
+test:
+	go test ./... -v -cover
+
+cover:
+	go test ./... -coverprofile=cover.out
+	go tool cover -html=cover.out
+
 ecommerce_example:
 	cockroach sql \
 		--host ${CRDB_IP} \
