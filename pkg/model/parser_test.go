@@ -620,7 +620,7 @@ func TestParseArgTypeSet(t *testing.T) {
 		expErr           error
 	}{
 		{
-			name: "valid set values without weights",
+			name: "valid string values without weights",
 			raw: map[string]any{
 				"values": []any{"a", "b", "c"},
 			},
@@ -628,15 +628,14 @@ func TestParseArgTypeSet(t *testing.T) {
 				raw, err := f(vu)
 				assert.NoError(t, err)
 
-				value := raw.(string)
-				assert.Contains(t, []any{"a", "b", "c"}, value)
+				assert.Contains(t, []any{"a", "b", "c"}, raw)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
 				assert.True(t, f(vu))
 			},
 		},
 		{
-			name: "valid set values with weights",
+			name: "valid string values with weights",
 			raw: map[string]any{
 				"values":  []any{"a", "b", "c"},
 				"weights": []any{100, 0, 0},
@@ -645,8 +644,22 @@ func TestParseArgTypeSet(t *testing.T) {
 				raw, err := f(vu)
 				assert.NoError(t, err)
 
-				value := raw.(string)
-				assert.Equal(t, "a", value)
+				assert.Equal(t, "a", raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
+				assert.True(t, f(vu))
+			},
+		},
+		{
+			name: "valid int values with weights",
+			raw: map[string]any{
+				"values": []any{1, 2, 3},
+			},
+			genFuncValidator: func(t *testing.T, f genFunc, vu *VU) {
+				raw, err := f(vu)
+				assert.NoError(t, err)
+
+				assert.Contains(t, []any{1, 2, 3}, raw)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
 				assert.True(t, f(vu))

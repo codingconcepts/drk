@@ -27,12 +27,8 @@ func buildWeightedItems(values []any, weights []int) (weightedItems, error) {
 		return weightedItems{}, fmt.Errorf("set values and weights need to be the same")
 	}
 
-	stringValues := lo.Map(values, func(item any, _ int) string {
-		return item.(string)
-	})
-
-	weightedItems := make([]weightedItem, len(stringValues))
-	for i, v := range stringValues {
+	weightedItems := make([]weightedItem, len(values))
+	for i, v := range values {
 		weightedItems[i] = weightedItem{
 			Value:  v,
 			Weight: weights[i],
@@ -43,7 +39,7 @@ func buildWeightedItems(values []any, weights []int) (weightedItems, error) {
 }
 
 type weightedItem struct {
-	Value  string
+	Value  any
 	Weight int
 }
 
