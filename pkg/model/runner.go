@@ -80,7 +80,7 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 			return fmt.Errorf("running query %q: %w", query, err)
 		}
 
-		r.events <- Event{Workflow: workflowName, Name: query, Duration: taken}
+		r.events <- Event{Workflow: "*" + workflowName, Name: query, Duration: taken}
 		vu.applyData(query, data)
 	}
 

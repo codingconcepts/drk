@@ -33,10 +33,10 @@ func buildWeightedItems(values []any, weights []int) (weightedItems, error) {
 
 	weightedItems := make([]weightedItem, len(stringValues))
 	for i, v := range stringValues {
-		weightedItems = append(weightedItems, weightedItem{
+		weightedItems[i] = weightedItem{
 			Value:  v,
 			Weight: weights[i],
-		})
+		}
 	}
 
 	return makeWeightedItems(weightedItems), nil

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/codingconcepts/drk/pkg/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -424,7 +425,7 @@ func TestParseArgTypeScalar(t *testing.T) {
 				assert.NoError(t, err)
 
 				act := raw.(int)
-				assert.True(t, act >= 10 && act <= 100)
+				test.NumberBetween(t, act, 10, 100)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc) {
 				assert.True(t, f(nil))
@@ -442,7 +443,7 @@ func TestParseArgTypeScalar(t *testing.T) {
 				assert.NoError(t, err)
 
 				act := raw.(float64)
-				assert.True(t, act >= 10.0 && act <= 100.0)
+				test.NumberBetween(t, act, 10.0, 100.0)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc) {
 				assert.True(t, f(nil))
@@ -462,7 +463,7 @@ func TestParseArgTypeScalar(t *testing.T) {
 				act := raw.(time.Time)
 				min := time.Date(2023, 11, 12, 19, 13, 7, 0, time.UTC)
 				max := time.Date(2024, 11, 12, 19, 13, 7, 0, time.UTC)
-				assert.True(t, (act.Equal(min) || act.After(min)) && (act.Equal(max) || act.Before(max)))
+				test.TimestampBetween(t, act, min, max)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc) {
 				assert.True(t, f(nil))
@@ -482,7 +483,7 @@ func TestParseArgTypeScalar(t *testing.T) {
 				act := raw.(time.Duration)
 				min := time.Hour*1 + time.Minute*2 + time.Second*3
 				max := time.Hour*2 + time.Minute*3 + time.Second*4
-				assert.True(t, act >= min && act <= max)
+				test.NumberBetween(t, act, min, max)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc) {
 				assert.True(t, f(nil))
