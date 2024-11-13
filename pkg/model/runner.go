@@ -1,29 +1,24 @@
 package model
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/codingconcepts/drk/pkg/repo"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 )
 
 type Runner struct {
-	db       *sql.DB
+	db       repo.Queryer
 	cfg      *Drk
 	duration time.Duration
 	events   chan Event
 	logger   *zerolog.Logger
 }
 
-func NewRunner(cfg *Drk, url, driver string, duration time.Duration, logger *zerolog.Logger) (*Runner, error) {
-	db, err := sql.Open(driver, url)
-	if err != nil {
-		return nil, fmt.Errorf("connecting to database: %w", err)
-	}
-
+func NewRunner(cfg *Drk, db repo.Queryer, url, driver string, duration time.Duration, logger *zerolog.Logger) (*Runner, error) {
 	r := Runner{
 		db:       db,
 		cfg:      cfg,
@@ -147,61 +142,15 @@ func (r *Runner) runQuery(vu *VU, query Query) ([]map[string]any, time.Duration,
 	r.logger.Debug().Msgf("[STMT] %s", query.Query)
 	r.logger.Debug().Msgf("\t[ARGS] %v", args)
 
-	start := time.Now()
-
 	switch query.Type {
 	case "query":
-		rows, err := r.db.Query(query.Query, args...)
-		if err != nil {
-			return nil, 0, fmt.Errorf("running query: %w", err)
-		}
-
-		data, err := readRows(rows)
-		if err != nil {
-			return nil, 0, fmt.Errorf("reading rows: %w", err)
-		}
-		return data, time.Since(start), nil
+		return r.db.Query(query.Query, args...)
 
 	case "exec":
-		_, err = r.db.Exec(query.Query, args...)
-		if err != nil {
-			return nil, 0, fmt.Errorf("running query: %w", err)
-		}
-		return nil, time.Since(start), nil
+		taken, err := r.db.Exec(query.Query, args...)
+		return nil, taken, err
 
 	default:
 		return nil, 0, fmt.Errorf("unsupported query type: %q", query.Type)
 	}
-}
-
-func readRows(rows *sql.Rows) ([]map[string]any, error) {
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, fmt.Errorf("getting column names: %w", err)
-	}
-
-	values := make([]any, len(columns))
-	scanArgs := make([]any, len(columns))
-	for i := range values {
-		scanArgs[i] = &values[i]
-	}
-
-	var results []map[string]any
-
-	for rows.Next() {
-		if err := rows.Scan(scanArgs...); err != nil {
-			return nil, fmt.Errorf("scaning row: %w", err)
-		}
-
-		result := map[string]any{}
-
-		for i, c := range columns {
-			cellPtr := scanArgs[i]
-			result[c] = *cellPtr.(*any)
-		}
-
-		results = append(results, result)
-	}
-
-	return results, nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/model"
+	"github.com/codingconcepts/drk/pkg/repo"
 	"github.com/codingconcepts/ring"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
@@ -51,7 +53,13 @@ func main() {
 		return
 	}
 
-	runner, err := model.NewRunner(cfg, *url, *driver, *duration, &logger)
+	db, err := sql.Open(*driver, *url)
+	if err != nil {
+		log.Fatalf("connecting to database: %v", err)
+	}
+	queryer := repo.NewDBRepo(db)
+
+	runner, err := model.NewRunner(cfg, queryer, *url, *driver, *duration, &logger)
 	if err != nil {
 		log.Fatalf("error creating runner: %v", err)
 	}
