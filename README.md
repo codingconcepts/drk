@@ -26,6 +26,5 @@ make payments_example
 * Configure a workflow query for the exec type to test it
 * Add the ability to ensure uniqueness across two arg values (re-running until unique, or crashing after X attempts)
 * Update ref to allow more than one item to be seleted (e.g. add multiple products to a basket)
-* TEST!
 * Optionally pass args in workflow queries
 * Ramp VU's up and down
