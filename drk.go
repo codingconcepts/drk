@@ -90,6 +90,7 @@ func monitor(r *model.Runner) {
 
 			w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
 			fmt.Fprintln(w, "Query\tRequests\tAverage Latency")
+			fmt.Fprintln(w, "-----\t--------\t---------------")
 
 			for _, key := range keys {
 				latencies := eventLatencies[key].Slice()

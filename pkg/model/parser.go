@@ -121,6 +121,9 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 	}
 
 	depFunc := func(vu *VU) bool {
+		vu.dataMu.RLock()
+		defer vu.dataMu.RUnlock()
+
 		data, ok := vu.data[queryRef]
 		if !ok || len(data) == 0 {
 			vu.logger.Info().Str("query", queryRef).Bool("found", ok).Any("data", vu.data).Msg("missing table data")
