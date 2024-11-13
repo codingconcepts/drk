@@ -175,6 +175,21 @@ func parseArgTypeSet(raw map[string]any) (genFunc, dependencyFunc, error) {
 	return genFunc, dependencyFuncNoop, nil
 }
 
+func parseArgTypeConst(raw map[string]any) (genFunc, dependencyFunc, error) {
+	value, err := parseField[any](raw, "value")
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing value: %w", err)
+	}
+
+	genFunc := func(vu *VU) (any, error) {
+		vu.logger.Debug().Msgf("[CONST] gen %v", value)
+
+		return value, nil
+	}
+
+	return genFunc, dependencyFuncNoop, nil
+}
+
 func parseMinMax[T any](raw map[string]any) (T, T, error) {
 	min, err := parseField[T](raw, "min")
 	if err != nil {

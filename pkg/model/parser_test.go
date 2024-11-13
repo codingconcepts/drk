@@ -687,3 +687,89 @@ func TestParseArgTypeSet(t *testing.T) {
 		})
 	}
 }
+
+func TestParseArgTypeConst(t *testing.T) {
+	cases := []struct {
+		name             string
+		raw              map[string]any
+		genFuncValidator func(*testing.T, genFunc, *VU)
+		depFuncValidator func(*testing.T, dependencyFunc, *VU)
+		expErr           error
+	}{
+		{
+			name: "valid string value",
+			raw: map[string]any{
+				"value": "a",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc, vu *VU) {
+				raw, err := f(vu)
+				assert.NoError(t, err)
+
+				assert.Equal(t, "a", raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
+				assert.True(t, f(vu))
+			},
+		},
+		{
+			name: "valid int value",
+			raw: map[string]any{
+				"value": 1,
+			},
+			genFuncValidator: func(t *testing.T, f genFunc, vu *VU) {
+				raw, err := f(vu)
+				assert.NoError(t, err)
+
+				assert.Equal(t, 1, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
+				assert.True(t, f(vu))
+			},
+		},
+		{
+			name: "valid float value",
+			raw: map[string]any{
+				"value": 1.0,
+			},
+			genFuncValidator: func(t *testing.T, f genFunc, vu *VU) {
+				raw, err := f(vu)
+				assert.NoError(t, err)
+
+				assert.Equal(t, 1.0, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
+				assert.True(t, f(vu))
+			},
+		},
+		{
+			name: "valid bool value",
+			raw: map[string]any{
+				"value": true,
+			},
+			genFuncValidator: func(t *testing.T, f genFunc, vu *VU) {
+				raw, err := f(vu)
+				assert.NoError(t, err)
+
+				assert.Equal(t, true, raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
+				assert.True(t, f(vu))
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			gen, dep, err := parseArgTypeConst(c.raw)
+			assert.Equal(t, c.expErr, err)
+			if err != nil {
+				return
+			}
+
+			vu := NewVU(&zerolog.Logger{})
+
+			c.genFuncValidator(t, gen, vu)
+			c.depFuncValidator(t, dep, vu)
+		})
+	}
+}

@@ -96,7 +96,12 @@ func (a *Arg) UnmarshalYAML(unmarshal func(any) error) error {
 
 	case "set":
 		if a.generator, a.dependencyCheck, err = parseArgTypeSet(raw); err != nil {
-			return fmt.Errorf("parsing ref arg type: %w", err)
+			return fmt.Errorf("parsing set arg type: %w", err)
+		}
+
+	case "const":
+		if a.generator, a.dependencyCheck, err = parseArgTypeConst(raw); err != nil {
+			return fmt.Errorf("parsing const arg type: %w", err)
 		}
 
 	default:
