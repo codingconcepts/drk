@@ -1,6 +1,6 @@
 workflows:
 
-  casual_shopper:
+  individual:
     vus: 50
     setup_queries:
       - open_account
@@ -8,6 +8,24 @@ workflows:
     queries:
       - name: make_transfer
         rate: 1/1s
+
+  small_business:
+    vus: 20
+    setup_queries:
+      - open_account
+      - fetch_accounts
+    queries:
+      - name: make_transfer
+        rate: 20/1s
+
+  large_business:
+    vus: 20
+    setup_queries:
+      - open_account
+      - fetch_accounts
+    queries:
+      - name: make_transfer
+        rate: 50/1s
 
 activities:
 

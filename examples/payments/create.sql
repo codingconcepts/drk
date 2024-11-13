@@ -1,17 +1,17 @@
-CREATE TABLE customer (
+CREATE TABLE IF NOT EXISTS customer (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "email" STRING NOT NULL,
 
   UNIQUE("email")
 );
 
-CREATE TABLE account (
+CREATE TABLE IF NOT EXISTS account (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "customer_id" UUID NOT NULL REFERENCES customer ("id"),
   "balance" DECIMAL NOT NULL
 );
 
-CREATE TABLE transaction_history (
+CREATE TABLE IF NOT EXISTS transaction_history (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "src_account_id" UUID NOT NULL REFERENCES account ("id"),
   "dst_account_id" UUID NOT NULL REFERENCES account ("id"),
