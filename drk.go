@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"sort"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -85,28 +87,48 @@ func monitor(r *model.Runner) {
 			eventLatencies[key].Add(event.Duration)
 
 		case <-printTicks:
-			keys := lo.Keys(eventCounts)
-			sort.Strings(keys)
+			fmt.Print("\033[H\033[2J")
 
 			w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
-			fmt.Fprintln(w, "Query\tRequests\tAverage Latency")
-			fmt.Fprintln(w, "-----\t--------\t---------------")
 
-			for _, key := range keys {
-				latencies := eventLatencies[key].Slice()
+			fmt.Fprintln(w, "Setup queries")
+			fmt.Fprintf(w, "=============\n\n")
+			writeEvent(w, eventCounts, eventLatencies, func(s string, _ int) bool {
+				return strings.HasPrefix(s, "*")
+			})
 
-				fmt.Fprintf(
-					w,
-					"%s\t%d\t%s\n",
-					key,
-					eventCounts[key],
-					lo.Sum(latencies)/time.Duration(len(latencies)),
-				)
-			}
+			fmt.Fprintf(w, "\n\n")
 
-			fmt.Print("\033[H\033[2J")
+			fmt.Fprintln(w, "Queries")
+			fmt.Fprintf(w, "=======\n\n")
+			writeEvent(w, eventCounts, eventLatencies, func(s string, _ int) bool {
+				return !strings.HasPrefix(s, "*")
+			})
+
 			w.Flush()
 		}
+	}
+}
+
+type filter func(string, int) bool
+
+func writeEvent(w io.Writer, counts map[string]int, latencies map[string]*ring.Ring[time.Duration], f filter) {
+	keys := lo.Keys(counts)
+	sort.Strings(keys)
+
+	fmt.Fprintln(w, "Query\tRequests\tAverage Latency")
+	fmt.Fprintln(w, "-----\t--------\t---------------")
+
+	for _, key := range lo.Filter(keys, f) {
+		latencies := latencies[key].Slice()
+
+		fmt.Fprintf(
+			w,
+			"%s\t%d\t%s\n",
+			strings.TrimPrefix(key, "*"),
+			counts[key],
+			lo.Sum(latencies)/time.Duration(len(latencies)),
+		)
 	}
 }
 
