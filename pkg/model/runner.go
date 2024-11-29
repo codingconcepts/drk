@@ -10,6 +10,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	initWorkflow = "init"
+)
+
 type Runner struct {
 	db       repo.Queryer
 	cfg      *Drk
@@ -34,6 +38,18 @@ func NewRunner(cfg *Drk, db repo.Queryer, url, driver string, duration time.Dura
 
 func (r *Runner) Run() error {
 	var eg errgroup.Group
+
+	// Run init workflow if provided, using a single VU.
+	init, ok := r.cfg.Workflows[initWorkflow]
+	if ok {
+		r.logger.Info().Msg("running init workflow")
+		time.Sleep(time.Second)
+
+		init.Vus = 1
+		if err := r.runWorkflow(initWorkflow, init); err != nil {
+			return fmt.Errorf("running init workflow: %w", err)
+		}
+	}
 
 	for name, workflow := range r.cfg.Workflows {
 		eg.Go(func() error {

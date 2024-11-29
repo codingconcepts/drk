@@ -1,5 +1,10 @@
 workflows:
 
+  init:
+    setup_queries:
+      - populate_shoppers
+      - populate_products
+
   casual_shopper:
     vus: 100
     setup_queries:
@@ -43,6 +48,31 @@ workflows:
         rate: 1/1s
 
 activities:
+
+  populate_shoppers:
+    type: exec
+    args:
+      - type: int
+        min: 1000
+        max: 1000
+    query: |-
+      INSERT INTO shopper (email)
+      SELECT 
+        LEFT(sha256(random()::TEXT), 16)
+      FROM generate_series(1, $1);
+
+  populate_products:
+    type: exec
+    args:
+      - type: int
+        min: 1000
+        max: 1000
+    query: |-
+      INSERT INTO product (name, price)
+      SELECT 
+        LEFT(sha256(random()::TEXT), 16),
+        ROUND(CAST(random() * 99 + 1 AS DECIMAL), 2)
+      FROM generate_series(1, $1);
 
   create_shopper:
     type: query

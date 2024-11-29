@@ -34,3 +34,6 @@ payments_example:
 	go run drk.go \
 		--config "examples/payments/drk.yaml" \
 		--url "postgres://root@localhost:26257?sslmode=disable"
+
+teardown:
+	docker ps -aq | xargs docker rm -f

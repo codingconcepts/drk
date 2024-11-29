@@ -23,7 +23,7 @@ make payments_example
 
 ### Todos
 
-* Support init workloads to load data
+* Support bulk activities (e.g. insert 1,000 instead of just 1)
 * Configure a workflow query for the exec type to test it
 * Add the ability to ensure uniqueness across two arg values (re-running until unique, or crashing after X attempts)
 * Update ref to allow more than one item to be seleted (e.g. add multiple products to a basket)
