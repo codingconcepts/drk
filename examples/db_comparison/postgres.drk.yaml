@@ -1,0 +1,31 @@
+workflows:
+
+  read:
+    vus: 1
+    setup_queries:
+      - fetch_ids
+    queries:
+      - name: point_lookup
+        rate: 1/1s
+
+activities:
+
+  point_lookup:
+    type: query
+    args:
+      - type: ref
+        query: fetch_ids
+        column: id
+    query: |-
+      SELECT * FROM t WHERE id = $1
+
+  fetch_ids:
+    type: query
+    args:
+      - type: int
+        min: 10
+        max: 10
+    query: |-
+      SELECT id
+      FROM t
+      LIMIT $1;

@@ -15,6 +15,7 @@ import (
 	"github.com/codingconcepts/drk/pkg/model"
 	"github.com/codingconcepts/drk/pkg/repo"
 	"github.com/codingconcepts/ring"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
