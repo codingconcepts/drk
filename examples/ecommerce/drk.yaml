@@ -6,7 +6,7 @@ workflows:
       - populate_products
 
   casual_shopper:
-    vus: 100
+    vus: 10
     setup_queries:
       - create_shopper
       - fetch_product_names

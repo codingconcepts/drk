@@ -7,4 +7,5 @@ type Event struct {
 	Workflow string
 	Name     string
 	Duration time.Duration
+	Err      error
 }

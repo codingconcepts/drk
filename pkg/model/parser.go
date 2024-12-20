@@ -126,13 +126,19 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 
 		data, ok := vu.data[queryRef]
 		if !ok || len(data) == 0 {
-			vu.logger.Info().Str("query", queryRef).Bool("found", ok).Any("data", vu.data).Msg("missing table data")
+			vu.logger.Debug().
+				Str("query", queryRef).
+				Str("column", columnRef).
+				Bool("found", ok).
+				Any("data", vu.data).
+				Msg("missing table data")
+
 			return false
 		}
 
 		_, ok = data[0][columnRef]
 		if !ok {
-			vu.logger.Info().Str("column", columnRef).Bool("found", ok).Msg("missing cell data")
+			vu.logger.Debug().Str("column", columnRef).Bool("found", ok).Msg("missing cell data")
 		}
 
 		return ok

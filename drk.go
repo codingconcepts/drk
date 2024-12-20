@@ -88,6 +88,7 @@ func monitor(r *model.Runner) {
 	printTicks := time.Tick(time.Second)
 
 	eventCounts := map[string]int{}
+	errorCounts := map[string]int{}
 	eventLatencies := map[string]*ring.Ring[time.Duration]{}
 
 	for {
@@ -95,8 +96,12 @@ func monitor(r *model.Runner) {
 		case event := <-events:
 			key := fmt.Sprintf("%s.%s", event.Workflow, event.Name)
 
-			// Add to event count.
-			eventCounts[key]++
+			// Increment counts.
+			if event.Err != nil {
+				errorCounts[key]++
+			} else {
+				eventCounts[key]++
+			}
 
 			// Add to event latencies.
 			if _, ok := eventLatencies[key]; !ok {
@@ -111,7 +116,7 @@ func monitor(r *model.Runner) {
 
 			fmt.Fprintln(w, "Setup queries")
 			fmt.Fprintf(w, "=============\n\n")
-			writeEvent(w, eventCounts, eventLatencies, func(s string, _ int) bool {
+			writeEvent(w, eventCounts, errorCounts, eventLatencies, func(s string, _ int) bool {
 				return strings.HasPrefix(s, "*")
 			})
 
@@ -119,7 +124,7 @@ func monitor(r *model.Runner) {
 
 			fmt.Fprintln(w, "Queries")
 			fmt.Fprintf(w, "=======\n\n")
-			writeEvent(w, eventCounts, eventLatencies, func(s string, _ int) bool {
+			writeEvent(w, eventCounts, errorCounts, eventLatencies, func(s string, _ int) bool {
 				return !strings.HasPrefix(s, "*")
 			})
 
@@ -130,21 +135,22 @@ func monitor(r *model.Runner) {
 
 type filter func(string, int) bool
 
-func writeEvent(w io.Writer, counts map[string]int, latencies map[string]*ring.Ring[time.Duration], f filter) {
+func writeEvent(w io.Writer, counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration], f filter) {
 	keys := lo.Keys(counts)
 	sort.Strings(keys)
 
-	fmt.Fprintln(w, "Query\tRequests\tAverage Latency")
-	fmt.Fprintln(w, "-----\t--------\t---------------")
+	fmt.Fprintln(w, "Query\tRequests\tErrors\tAverage Latency")
+	fmt.Fprintln(w, "-----\t--------\t------\t---------------")
 
 	for _, key := range lo.Filter(keys, f) {
 		latencies := latencies[key].Slice()
 
 		fmt.Fprintf(
 			w,
-			"%s\t%d\t%s\n",
+			"%s\t%d\t%d\t%s\n",
 			strings.TrimPrefix(key, "*"),
 			counts[key],
+			errors[key],
 			lo.Sum(latencies)/time.Duration(len(latencies)),
 		)
 	}
