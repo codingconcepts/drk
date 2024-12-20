@@ -37,24 +37,8 @@ var databaseSQLResultFormats pgx.QueryResultFormatsByOID
 var pgxDriver *Driver
 
 func init() {
-	region, ok := os.LookupEnv("AWS_REGION")
-	if !ok {
-		log.Fatalln("missing AWS_REGION env var")
-	}
-	awsAccessKeyID, ok := os.LookupEnv("AWS_ACCESS_KEY_ID")
-	if !ok {
-		log.Fatalln("missing AWS_ACCESS_KEY_ID env var")
-	}
-	awsSecretAccessKey, ok := os.LookupEnv("AWS_SECRET_ACCESS_KEY")
-	if !ok {
-		log.Fatalln("missing AWS_SECRET_ACCESS_KEY env var")
-	}
-
 	pgxDriver = &Driver{
-		configs:            make(map[string]*pgx.ConnConfig),
-		awsRegion:          region,
-		awsAccessKeyID:     awsAccessKeyID,
-		awsSecretAccessKey: awsSecretAccessKey,
+		configs: make(map[string]*pgx.ConnConfig),
 	}
 
 	sql.Register("dsql", pgxDriver)
@@ -255,10 +239,6 @@ type Driver struct {
 	configMutex sync.Mutex
 	configs     map[string]*pgx.ConnConfig
 	sequence    int
-
-	awsRegion          string
-	awsAccessKeyID     string
-	awsSecretAccessKey string
 }
 
 func (d *Driver) Open(name string) (driver.Conn, error) {
@@ -828,9 +808,22 @@ func (wtx wrapTx) Commit() error { return wtx.tx.Commit(wtx.ctx) }
 func (wtx wrapTx) Rollback() error { return wtx.tx.Rollback(wtx.ctx) }
 
 func (d *Driver) dsqlConnect(connStr string) (*pgx.ConnConfig, error) {
+	awsRegion, ok := os.LookupEnv("AWS_REGION")
+	if !ok {
+		log.Fatalln("missing AWS_REGION env var")
+	}
+	awsAccessKeyID, ok := os.LookupEnv("AWS_ACCESS_KEY_ID")
+	if !ok {
+		log.Fatalln("missing AWS_ACCESS_KEY_ID env var")
+	}
+	awsSecretAccessKey, ok := os.LookupEnv("AWS_SECRET_ACCESS_KEY")
+	if !ok {
+		log.Fatalln("missing AWS_SECRET_ACCESS_KEY env var")
+	}
+
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(d.awsRegion),
-		Credentials: credentials.NewStaticCredentials(d.awsAccessKeyID, d.awsSecretAccessKey, ""),
+		Region:      aws.String(awsRegion),
+		Credentials: credentials.NewStaticCredentials(awsAccessKeyID, awsSecretAccessKey, ""),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating session: %w", err)
@@ -852,7 +845,7 @@ func (d *Driver) dsqlConnect(connStr string) (*pgx.ConnConfig, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
-	token, err := generateDBConnectAdminAuthToken(staticCredentials, connConfig.Host, d.awsRegion)
+	token, err := generateDBConnectAdminAuthToken(staticCredentials, connConfig.Host, awsRegion)
 	if err != nil {
 		return nil, fmt.Errorf("generating admin auth token: %w", err)
 	}
