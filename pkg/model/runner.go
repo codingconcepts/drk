@@ -130,15 +130,11 @@ func (r *Runner) runActivity(vu *VU, workflowName, queryName string, query Query
 				continue
 			}
 
-			r.logger.Debug().Str("query", queryName).Msg("starting")
-
 			data, taken, err := r.runQuery(vu, query)
 			if err != nil {
 				r.events <- Event{Workflow: workflowName, Name: queryName, Duration: taken, Err: err}
-				r.logger.Error().Str("query", queryName).Msgf("error: %v", err)
 				continue
 			}
-			r.logger.Debug().Str("query", queryName).Msgf("[DATA] %+v", data)
 
 			r.events <- Event{Workflow: workflowName, Name: queryName, Duration: taken}
 			vu.applyData(queryName, data)

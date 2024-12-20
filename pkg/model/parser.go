@@ -98,8 +98,6 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 	}
 
 	genFunc := func(vu *VU) (any, error) {
-		vu.logger.Debug().Msgf("[REF] gen %s - %s", queryRef, columnRef)
-
 		vu.dataMu.RLock()
 		defer vu.dataMu.RUnlock()
 		query, ok := vu.data[queryRef]
@@ -126,22 +124,15 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 
 		data, ok := vu.data[queryRef]
 		if !ok || len(data) == 0 {
-			vu.logger.Debug().
-				Str("query", queryRef).
-				Str("column", columnRef).
-				Bool("found", ok).
-				Any("data", vu.data).
-				Msg("missing table data")
-
 			return false
 		}
 
 		_, ok = data[0][columnRef]
 		if !ok {
-			vu.logger.Debug().Str("column", columnRef).Bool("found", ok).Msg("missing cell data")
+			return false
 		}
 
-		return ok
+		return true
 	}
 
 	return genFunc, depFunc, err
@@ -173,8 +164,6 @@ func parseArgTypeSet(raw map[string]any) (genFunc, dependencyFunc, error) {
 	}
 
 	genFunc := func(vu *VU) (any, error) {
-		vu.logger.Debug().Msgf("[SET] gen %v", values)
-
 		return weightedItems.choose(), nil
 	}
 
@@ -188,8 +177,6 @@ func parseArgTypeConst(raw map[string]any) (genFunc, dependencyFunc, error) {
 	}
 
 	genFunc := func(vu *VU) (any, error) {
-		vu.logger.Debug().Msgf("[CONST] gen %v", value)
-
 		return value, nil
 	}
 
