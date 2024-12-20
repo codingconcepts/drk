@@ -79,7 +79,8 @@ docker run --rm -it \
 codingconcepts/drk:v0.1.0 \
 --driver pgx \
 --url "postgres://root@host.docker.internal:26257?sslmode=disable" \
---config docker_run/workload.yaml
+--config docker_run/workload.yaml \
+--pretty
 ```
 
 ### Deploying workloads via Docker
