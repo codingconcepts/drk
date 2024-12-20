@@ -100,6 +100,7 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 	genFunc := func(vu *VU) (any, error) {
 		vu.dataMu.RLock()
 		defer vu.dataMu.RUnlock()
+
 		query, ok := vu.data[queryRef]
 		if !ok {
 			return nil, fmt.Errorf("missing query: %q", queryRef)

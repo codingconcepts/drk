@@ -15,6 +15,7 @@ import (
 	_ "github.com/codingconcepts/drk/pkg/driver"
 	"github.com/codingconcepts/drk/pkg/model"
 	"github.com/codingconcepts/drk/pkg/repo"
+	"github.com/codingconcepts/env"
 	"github.com/codingconcepts/ring"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -25,15 +26,29 @@ import (
 
 var version string
 
+type envs struct {
+	Config   string        `env:"CONFIG"`
+	URL      string        `env:"URL"`
+	Driver   string        `env:"DRIVER"`
+	Duration time.Duration `env:"DURATION"`
+}
+
 func main() {
-	config := flag.String("config", "drk.yaml", "absolute or relative path to config file")
-	url := flag.String("url", "", "database connection string")
-	driver := flag.String("driver", "pgx", "database driver to use [pgx, mysql, dsql]")
+	var e envs
+
+	flag.StringVar(&e.Config, "config", "drk.yaml", "absolute or relative path to config file")
+	flag.StringVar(&e.URL, "url", "", "database connection string")
+	flag.StringVar(&e.Driver, "driver", "pgx", "database driver to use [pgx, mysql, dsql]")
+	flag.DurationVar(&e.Duration, "duration", time.Minute*10, "total duration of simulation")
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
 	debug := flag.Bool("debug", false, "enable verbose logging")
-	duration := flag.Duration("duration", time.Minute*10, "total duration of simulation")
 	showVersion := flag.Bool("version", false, "display the application version")
 	flag.Parse()
+
+	// Override settings with values from the environment if provided.
+	if err := env.Set(&e); err != nil {
+		log.Fatalf("error setting environment variables: %v", err)
+	}
 
 	logger := zerolog.New(zerolog.ConsoleWriter{
 		Out: os.Stdout,
@@ -47,12 +62,12 @@ func main() {
 		return
 	}
 
-	if *url == "" || *driver == "" || *config == "" {
+	if e.URL == "" || e.Driver == "" || e.Config == "" {
 		flag.Usage()
 		os.Exit(2)
 	}
 
-	cfg, err := loadConfig(*config)
+	cfg, err := loadConfig(e.Config)
 	if err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
@@ -63,13 +78,13 @@ func main() {
 		return
 	}
 
-	db, err := sql.Open(*driver, *url)
+	db, err := sql.Open(e.Driver, e.URL)
 	if err != nil {
 		log.Fatalf("connecting to database: %v", err)
 	}
 	queryer := repo.NewDBRepo(db)
 
-	runner, err := model.NewRunner(cfg, queryer, *url, *driver, *duration, &logger)
+	runner, err := model.NewRunner(cfg, queryer, e.URL, e.Driver, e.Duration, &logger)
 	if err != nil {
 		log.Fatalf("error creating runner: %v", err)
 	}

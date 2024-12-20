@@ -1,6 +1,6 @@
 module github.com/codingconcepts/drk
 
-go 1.22.0
+go 1.22.4
 
 toolchain go1.23.4
 
@@ -14,6 +14,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go v1.55.5
+	github.com/codingconcepts/env v0.0.0-20240618133406-5b0845441187
 	github.com/codingconcepts/ring v0.0.0-20240125133104-23e758eb5030
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/stretchr/testify v1.10.0

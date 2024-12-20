@@ -1,4 +1,4 @@
-FROM codingconcepts/drk:v0.1.0
+FROM codingconcepts/drk:latest
 
 ARG workload_dir
 

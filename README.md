@@ -13,6 +13,15 @@ tar -xvf drk_0.0.1_macos_arm64.tar.gz
 
 ### Usage
 
+drk's main 4 settings (config, driver, duration, and url) can be configured with arguments or from the environment.
+
+| Setting  | Argument   | Envrironment |
+| -------- | ---------- | ------------ |
+| Config   | --config   | CONFIG       |
+| Driver   | --driver   | DRIVER       |
+| Duration | --duration | DURATION     |
+| URL      | --url      | URL          |
+
 ```
 drk --help
 
@@ -87,11 +96,19 @@ where you won't have access to workload files).
 		.
 )
 
+# Via arguments.
 docker run --rm -it \
 codingconcepts/drkd \
 --driver pgx \
 --url "postgres://root@host.docker.internal:26257?sslmode=disable" \
 --config workloads/workload.yaml
+
+# Via environment.
+docker run --rm -it \
+-e DRIVER=pgx \
+-e URL="postgres://root@host.docker.internal:26257?sslmode=disable" \
+-e CONFIG=workloads/workload.yaml \
+codingconcepts/drkd
 ```
 
 ### Todos

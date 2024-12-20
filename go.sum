@@ -4,6 +4,8 @@ github.com/aws/aws-sdk-go v1.55.5 h1:KKUZBfBoyqy5d3swXyiC7Q76ic40rYcbqH7qjh59kzU
 github.com/aws/aws-sdk-go v1.55.5/go.mod h1:eRwEWoyTWFMVYVQzKMNHWP5/RV4xIUGMQfXQHfHkpNU=
 github.com/brianvoe/gofakeit/v7 v7.1.2 h1:vSKaVScNhWVpf1rlyEKSvO8zKZfuDtGqoIHT//iNNb8=
 github.com/brianvoe/gofakeit/v7 v7.1.2/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
+github.com/codingconcepts/env v0.0.0-20240618133406-5b0845441187 h1:LBucq2bT6eqahlLuaDZq0IaDvaI2kWAyInMv8JEzBQU=
+github.com/codingconcepts/env v0.0.0-20240618133406-5b0845441187/go.mod h1:gUW2+3vZSTAObqEHGT24ieIdRVYtbkm3/7mAP7qOnRc=
 github.com/codingconcepts/ring v0.0.0-20240125133104-23e758eb5030 h1:dgfym8uCoZk65lC0k0V7X/4GCivf68NvjRuB9sKSNWk=
 github.com/codingconcepts/ring v0.0.0-20240125133104-23e758eb5030/go.mod h1:WFOWoiPh1A5SnVLgiR5w1Z2zdEidO8TMkO2WQUX91+s=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
