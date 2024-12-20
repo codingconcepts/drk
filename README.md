@@ -114,6 +114,8 @@ codingconcepts/drkd
 
 ### Todos
 
+* Environment variable mapping, e.g:
+	FLY_REGION=iad then crdb_region = 'aws-us-east-1'
 * Cohorts (run these, then these)
 * Commit and Rollover counts
 * Support bulk activities (e.g. insert 1,000 instead of just 1)

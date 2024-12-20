@@ -6,7 +6,7 @@ COPY . /src
 # Arguments
 ARG version
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=$version" -o /app drk.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$version" -o /app drk.go
 
 # Build
 FROM alpine
