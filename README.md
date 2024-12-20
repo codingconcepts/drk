@@ -33,7 +33,7 @@ Usage of drk:
         display the application version
 ```
 
-### Examples
+### Running the binary
 
 For more examples see [examples](examples/) but here's the gist:
 
@@ -58,6 +58,40 @@ drk \
 --driver mysql
 --url "root:password@tcp(localhost:3306)/mysql"
 --config examples/db_comparison/mysql.drk.yaml \
+```
+
+### Running with Docker
+
+Run Docker, mounting a local volume containing your workload file.
+
+```sh
+docker run --rm -it \
+-v ${PWD}/examples/docker_run:/docker_run \
+codingconcepts/drk:v0.1.0 \
+--driver pgx \
+--url "postgres://root@host.docker.internal:26257?sslmode=disable" \
+--config docker_run/workload.yaml
+```
+
+### Deploying workloads via Docker
+
+Build a Docker image containing your workload files (suitable for deployments of drk to remote runtime locations
+where you won't have access to workload files).
+
+```sh
+(
+  cd examples/docker_deploy && \
+	docker build \
+		--build-arg workload_dir=. \
+		-t codingconcepts/drkd \
+		.
+)
+
+docker run --rm -it \
+codingconcepts/drkd \
+--driver pgx \
+--url "postgres://root@host.docker.internal:26257?sslmode=disable" \
+--config workloads/workload.yaml
 ```
 
 ### Todos

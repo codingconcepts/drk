@@ -1,0 +1,14 @@
+workflows:
+
+  hello_world:
+    vus: 1
+    queries:
+      - name: hello
+        rate: 2/1s
+
+activities:
+
+  hello:
+    type: query
+    query: |-
+      SELECT 'Hello, drk!';

@@ -10,6 +10,17 @@ ifndef VERSION
 	$(error VERSION is undefined)
 endif
 
+docker_build: validate_version
+	docker build \
+		-t codingconcepts/drk:${VERSION} \
+		--build-arg version=${VERSION} \
+		.
+
+docker_push: docker_build
+	docker push codingconcepts/drk:${VERSION}
+	docker tag codingconcepts/drk:${VERSION} codingconcepts/drk:latest
+	docker push codingconcepts/drk:latest
+
 release: validate_version
 	- mkdir releases
 
