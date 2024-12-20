@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	_ "github.com/codingconcepts/drk/pkg/driver"
 	"github.com/codingconcepts/drk/pkg/model"
 	"github.com/codingconcepts/drk/pkg/repo"
 	"github.com/codingconcepts/ring"
@@ -25,7 +26,7 @@ import (
 func main() {
 	config := flag.String("config", "drk.yaml", "absolute or relative path to config file")
 	url := flag.String("url", "", "database connection string")
-	driver := flag.String("driver", "pgx", "database driver to use [pgx]")
+	driver := flag.String("driver", "pgx", "database driver to use [pgx, mysql, dsql]")
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
 	debug := flag.Bool("debug", false, "enable verbose logging")
 	duration := flag.Duration("duration", time.Minute*10, "total duration of simulation")
