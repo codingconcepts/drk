@@ -23,6 +23,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var version string
+
 func main() {
 	config := flag.String("config", "drk.yaml", "absolute or relative path to config file")
 	url := flag.String("url", "", "database connection string")
@@ -30,19 +32,25 @@ func main() {
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
 	debug := flag.Bool("debug", false, "enable verbose logging")
 	duration := flag.Duration("duration", time.Minute*10, "total duration of simulation")
+	showVersion := flag.Bool("version", false, "display the application version")
 	flag.Parse()
-
-	if *url == "" || *driver == "" || *config == "" {
-		flag.Usage()
-		os.Exit(2)
-	}
 
 	logger := zerolog.New(zerolog.ConsoleWriter{
 		Out: os.Stdout,
 		PartsExclude: []string{
 			zerolog.TimestampFieldName,
 		},
-	}).Level(lo.Ternary(*debug, zerolog.DebugLevel, zerolog.WarnLevel))
+	}).Level(lo.Ternary(*debug, zerolog.DebugLevel, zerolog.InfoLevel))
+
+	if *showVersion {
+		logger.Info().Str("version", version).Msg("application info")
+		return
+	}
+
+	if *url == "" || *driver == "" || *config == "" {
+		flag.Usage()
+		os.Exit(2)
+	}
 
 	cfg, err := loadConfig(*config)
 	if err != nil {

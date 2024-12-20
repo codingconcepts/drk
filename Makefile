@@ -5,35 +5,31 @@ cover:
 	go test ./... -coverprofile=cover.out
 	go tool cover -html=cover.out
 
-ecommerce_example:
-	cockroach sql \
-		--host localhost \
-		--insecure \
-		-f examples/ecommerce/create.sql
+validate_version:
+ifndef VERSION
+	$(error VERSION is undefined)
+endif
 
-	cockroach sql \
-		--host localhost \
-		--insecure \
-		-f examples/ecommerce/populate.sql
-	
-	go run drk.go \
-		--config "examples/ecommerce/drk.yaml" \
-		--url "postgres://root@localhost:26257?sslmode=disable"
+release: validate_version
+	- mkdir releases
 
-payments_example:
-	cockroach sql \
-		--host localhost \
-		--insecure \
-		-f examples/payments/create.sql
+	# linux (amd)
+	GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o drk ;\
+	tar -zcvf ./releases/drk_${VERSION}_linux_amd64.tar.gz ./drk ;\
 
-	cockroach sql \
-		--host localhost \
-		--insecure \
-		-f examples/payments/populate.sql
-	
-	go run drk.go \
-		--config "examples/payments/drk.yaml" \
-		--url "postgres://root@localhost:26257?sslmode=disable"
+	# macos (arm)
+	GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o drk ;\
+	tar -zcvf ./releases/drk_${VERSION}_macos_arm64.tar.gz ./drk ;\
+
+	# macos (amd)
+	GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o drk ;\
+	tar -zcvf ./releases/drk_${VERSION}_macos_amd64.tar.gz ./drk ;\
+
+	# windows (amd)
+	GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o drk ;\
+	tar -zcvf ./releases/drk_${VERSION}_windows_amd64.tar.gz ./drk ;\
+
+	rm ./drk
 
 teardown:
 	docker ps -aq | xargs docker rm -f

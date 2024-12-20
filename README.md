@@ -29,6 +29,8 @@ Usage of drk:
         total duration of simulation (default 10m0s)
   -url string
         database connection string
+  -version
+        display the application version
 ```
 
 ### Examples
@@ -38,24 +40,24 @@ For more examples see [examples](examples/) but here's the gist:
 ```sh
 # CockroachDB / Postgres
 drk \
---config examples/db_comparison/postgres.drk.yaml \
 --driver pgx \
 --url "postgres://root@localhost:26257?sslmode=disable"
+--config examples/db_comparison/postgres.drk.yaml \
 
 # DSQL
 AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
 AWS_REGION=${AWS_REGION} \
 drk \
---config examples/db_comparison/postgres.drk.yaml \
 --driver dsql \
 --url "postgres://YOUR_ENDPOINT.dsql.us-east-1.on.aws:5432/postgres?user=admin&sslmode=verify-full&sslrootcert=AmazonRootCA1.pem"
+--config examples/db_comparison/postgres.drk.yaml \
 
 # MySQL
 drk \
---config examples/db_comparison/mysql.drk.yaml \
 --driver mysql
 --url "root:password@tcp(localhost:3306)/mysql"
+--config examples/db_comparison/mysql.drk.yaml \
 ```
 
 ### Todos
