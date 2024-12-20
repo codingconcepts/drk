@@ -43,6 +43,7 @@ func main() {
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
 	debug := flag.Bool("debug", false, "enable verbose logging")
 	showVersion := flag.Bool("version", false, "display the application version")
+	pretty := flag.Bool("pretty", false, "print results to the terminal in a table")
 	flag.Parse()
 
 	// Override settings with values from the environment if provided.
@@ -90,7 +91,7 @@ func main() {
 	}
 
 	if !*debug {
-		go monitor(runner)
+		go monitor(runner, &logger, *pretty)
 	}
 
 	if err = runner.Run(); err != nil {
@@ -98,7 +99,7 @@ func main() {
 	}
 }
 
-func monitor(r *model.Runner) {
+func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 	events := r.GetEventStream()
 	printTicks := time.Tick(time.Second)
 
@@ -125,27 +126,35 @@ func monitor(r *model.Runner) {
 			eventLatencies[key].Add(event.Duration)
 
 		case <-printTicks:
-			fmt.Print("\033[H\033[2J")
-
-			w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
-
-			fmt.Fprintln(w, "Setup queries")
-			fmt.Fprintf(w, "=============\n\n")
-			writeEvent(w, eventCounts, errorCounts, eventLatencies, func(s string, _ int) bool {
-				return strings.HasPrefix(s, "*")
-			})
-
-			fmt.Fprintf(w, "\n\n")
-
-			fmt.Fprintln(w, "Queries")
-			fmt.Fprintf(w, "=======\n\n")
-			writeEvent(w, eventCounts, errorCounts, eventLatencies, func(s string, _ int) bool {
-				return !strings.HasPrefix(s, "*")
-			})
-
-			w.Flush()
+			if pretty {
+				printTable(eventCounts, errorCounts, eventLatencies)
+			} else {
+				printLine(eventCounts, errorCounts, eventLatencies, logger)
+			}
 		}
 	}
+}
+
+func printTable(counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration]) {
+	fmt.Print("\033[H\033[2J")
+
+	w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
+
+	fmt.Fprintln(w, "Setup queries")
+	fmt.Fprintf(w, "=============\n\n")
+	writeEvent(w, counts, errors, latencies, func(s string, _ int) bool {
+		return strings.HasPrefix(s, "*")
+	})
+
+	fmt.Fprintf(w, "\n\n")
+
+	fmt.Fprintln(w, "Queries")
+	fmt.Fprintf(w, "=======\n\n")
+	writeEvent(w, counts, errors, latencies, func(s string, _ int) bool {
+		return !strings.HasPrefix(s, "*")
+	})
+
+	w.Flush()
 }
 
 type filter func(string, int) bool
@@ -168,6 +177,26 @@ func writeEvent(w io.Writer, counts, errors map[string]int, latencies map[string
 			errors[key],
 			lo.Sum(latencies)/time.Duration(len(latencies)),
 		)
+	}
+}
+
+func printLine(counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration], logger *zerolog.Logger) {
+	keys := lo.Keys(counts)
+	sort.Strings(keys)
+
+	f := func(s string, _ int) bool {
+		return !strings.HasPrefix(s, "*")
+	}
+
+	for _, key := range lo.Filter(keys, f) {
+		latencies := latencies[key].Slice()
+
+		logger.Info().
+			Str("key", key).
+			Int("count", counts[key]).
+			Int("errors", errors[key]).
+			Dur("avg_latency", lo.Sum(latencies)/time.Duration(len(latencies))).
+			Msg("")
 	}
 }
 
