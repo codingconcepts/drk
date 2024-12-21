@@ -114,8 +114,7 @@ codingconcepts/drkd
 
 ### Todos
 
-* Environment variable mapping, e.g:
-	FLY_REGION=iad then crdb_region = 'aws-us-east-1'
+* Fix: No logging or printing in the event that first queries are all errors
 * Cohorts (run these, then these)
 * Commit and Rollover counts
 * Support bulk activities (e.g. insert 1,000 instead of just 1)

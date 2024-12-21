@@ -14,13 +14,16 @@ type VU struct {
 	dataMu sync.RWMutex
 	data   map[string][]map[string]any
 
+	envMapper envMappingGenerator
+
 	logger *zerolog.Logger
 }
 
-func NewVU(logger *zerolog.Logger) *VU {
+func NewVU(r *Runner) *VU {
 	return &VU{
-		data:   map[string][]map[string]any{},
-		logger: logger,
+		data:      map[string][]map[string]any{},
+		envMapper: r.envMappings,
+		logger:    r.logger,
 	}
 }
 

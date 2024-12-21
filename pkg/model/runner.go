@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/repo"
@@ -15,25 +16,44 @@ const (
 )
 
 type Runner struct {
-	db       repo.Queryer
-	cfg      *Drk
-	duration time.Duration
-	events   chan Event
-	logger   *zerolog.Logger
+	db          repo.Queryer
+	cfg         *Drk
+	envMappings envMappingGenerator
+	duration    time.Duration
+	events      chan Event
+	logger      *zerolog.Logger
 }
 
 func NewRunner(cfg *Drk, db repo.Queryer, url, driver string, duration time.Duration, logger *zerolog.Logger) (*Runner, error) {
 	r := Runner{
-		db:       db,
-		cfg:      cfg,
-		duration: duration,
-		events:   make(chan Event, 1000),
-		logger:   logger,
+		db:          db,
+		cfg:         cfg,
+		envMappings: createEnvMappingGenerator(cfg),
+		duration:    duration,
+		events:      make(chan Event, 1000),
+		logger:      logger,
 	}
 
 	logger.Info().Float64("duration", r.duration.Seconds()).Msgf("runner")
 
 	return &r, nil
+}
+
+func createEnvMappingGenerator(cfg *Drk) func(env, value string) (string, bool) {
+	return func(env, value string) (string, bool) {
+		mapping, ok := cfg.EnvMappings[env]
+		if !ok {
+			return "", false
+		}
+
+		envVarValue, ok := os.LookupEnv(env)
+		if !ok {
+			return "", false
+		}
+
+		to, ok := mapping[envVarValue]
+		return to, ok
+	}
 }
 
 func (r *Runner) Run() error {
@@ -78,7 +98,7 @@ func (r *Runner) runWorkflow(name string, workflow Workflow) error {
 
 func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 	// Prepare VU.
-	vu := NewVU(r.logger)
+	vu := NewVU(r)
 
 	for _, query := range workflow.SetupQueries {
 		act, ok := r.cfg.Activities[query]

@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -98,7 +99,7 @@ func TestRunQuery(t *testing.T) {
 			r, err := NewRunner(nil, &queryer, "", "", 0, &zerolog.Logger{})
 			assert.NoError(t, err)
 
-			vu := NewVU(&zerolog.Logger{})
+			vu := NewVU(r)
 			act, _, err := r.runQuery(vu, c.query)
 
 			if c.expError != nil {
@@ -107,6 +108,66 @@ func TestRunQuery(t *testing.T) {
 			}
 
 			assert.Equal(t, c.exp, act)
+		})
+	}
+}
+
+func TestCreateEnvMappingGenerator(t *testing.T) {
+	cases := []struct {
+		name       string
+		envVars    map[string]string
+		envVarName string
+		mapKey     string
+		expVal     string
+		expOK      bool
+	}{
+		{
+			name: "valid env var found mapping",
+			envVars: map[string]string{
+				"FLY_REGION": "iad",
+			},
+			envVarName: "FLY_REGION",
+			mapKey:     "iad",
+			expVal:     "us-east-1",
+			expOK:      true,
+		},
+		{
+			name:       "missing env var valid mapping",
+			envVarName: "FLY_REGION",
+			mapKey:     "iad",
+			expVal:     "",
+			expOK:      false,
+		},
+		{
+			name:       "invalid env var",
+			envVarName: "INVALID",
+			mapKey:     "iad",
+			expVal:     "",
+			expOK:      false,
+		},
+	}
+
+	cfg := Drk{
+		EnvMappings: map[string]EnvMapping{
+			"FLY_REGION": {
+				"iad": "us-east-1",
+				"ord": "us-east-2",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			for k, v := range c.envVars {
+				os.Setenv(k, v)
+			}
+			defer os.Clearenv()
+
+			generator := createEnvMappingGenerator(&cfg)
+
+			actVal, actOK := generator(c.envVarName, c.mapKey)
+			assert.Equal(t, c.expVal, actVal)
+			assert.Equal(t, c.expOK, actOK)
 		})
 	}
 }

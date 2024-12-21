@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -596,7 +597,10 @@ func TestParseArgTypeRef(t *testing.T) {
 				return
 			}
 
-			vu := NewVU(&zerolog.Logger{})
+			vu := NewVU(&Runner{
+				logger: &zerolog.Logger{},
+			})
+
 			vu.data = map[string][]map[string]any{
 				"table": {
 					{
@@ -680,7 +684,9 @@ func TestParseArgTypeSet(t *testing.T) {
 				return
 			}
 
-			vu := NewVU(&zerolog.Logger{})
+			vu := NewVU(&Runner{
+				logger: &zerolog.Logger{},
+			})
 
 			c.genFuncValidator(t, gen, vu)
 			c.depFuncValidator(t, dep, vu)
@@ -766,7 +772,95 @@ func TestParseArgTypeConst(t *testing.T) {
 				return
 			}
 
-			vu := NewVU(&zerolog.Logger{})
+			vu := NewVU(&Runner{
+				logger: &zerolog.Logger{},
+			})
+
+			c.genFuncValidator(t, gen, vu)
+			c.depFuncValidator(t, dep, vu)
+		})
+	}
+}
+
+func TestParseArgTypeEnv(t *testing.T) {
+	cases := []struct {
+		name             string
+		raw              map[string]any
+		envVars          map[string]string
+		genFuncValidator func(*testing.T, genFunc, *VU)
+		depFuncValidator func(*testing.T, dependencyFunc, *VU)
+		expErr           error
+	}{
+		{
+			name: "valid env var mapping",
+			raw: map[string]any{
+				"name": "FLY_REGION",
+			},
+			envVars: map[string]string{
+				"FLY_REGION": "iad",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc, vu *VU) {
+				raw, err := f(vu)
+				assert.NoError(t, err)
+
+				assert.Equal(t, "us-east-1", raw)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
+				assert.True(t, f(vu))
+			},
+		},
+		{
+			name: "valid env var missing mapping",
+			raw: map[string]any{
+				"name": "FLY_REGION",
+			},
+			envVars: map[string]string{
+				"FLY_REGION": "invalid",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc, vu *VU) {
+				_, err := f(vu)
+
+				assert.Equal(t, fmt.Errorf("missing env var mapping for: \"invalid\""), err)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
+				assert.True(t, f(vu))
+			},
+		},
+		{
+			name: "valid env var mapping missing env var",
+			raw: map[string]any{
+				"name": "FLY_REGION",
+			},
+			expErr: fmt.Errorf("missing env var: \"FLY_REGION\""),
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			for k, v := range c.envVars {
+				os.Setenv(k, v)
+			}
+			defer os.Clearenv()
+
+			gen, dep, err := parseArgTypeEnv(c.raw)
+			assert.Equal(t, c.expErr, err)
+			if err != nil {
+				return
+			}
+
+			r, err := NewRunner(&Drk{
+				EnvMappings: map[string]EnvMapping{
+					"FLY_REGION": {
+						"iad": "us-east-1",
+					},
+				},
+			}, nil, "", "", 0, &zerolog.Logger{})
+
+			if err != nil {
+				t.Fatalf("error creating runner: %v", err)
+			}
+
+			vu := NewVU(r)
 
 			c.genFuncValidator(t, gen, vu)
 			c.depFuncValidator(t, dep, vu)

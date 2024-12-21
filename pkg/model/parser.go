@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"math/rand/v2"
+	"os"
 	"strings"
 	"time"
 
@@ -129,11 +130,7 @@ func parseArgTypeRef(raw map[string]any) (genFunc, dependencyFunc, error) {
 		}
 
 		_, ok = data[0][columnRef]
-		if !ok {
-			return false
-		}
-
-		return true
+		return ok
 	}
 
 	return genFunc, depFunc, err
@@ -179,6 +176,29 @@ func parseArgTypeConst(raw map[string]any) (genFunc, dependencyFunc, error) {
 
 	genFunc := func(vu *VU) (any, error) {
 		return value, nil
+	}
+
+	return genFunc, dependencyFuncNoop, nil
+}
+
+func parseArgTypeEnv(raw map[string]any) (genFunc, dependencyFunc, error) {
+	envVarName, err := parseField[string](raw, "name")
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing env var name: %w", err)
+	}
+
+	value, ok := os.LookupEnv(envVarName)
+	if !ok {
+		return nil, nil, fmt.Errorf("missing env var: %q", envVarName)
+	}
+
+	genFunc := func(vu *VU) (any, error) {
+		to, ok := vu.envMapper(envVarName, value)
+		if !ok {
+			return nil, fmt.Errorf("missing env var mapping for: %q", value)
+		}
+
+		return to, nil
 	}
 
 	return genFunc, dependencyFuncNoop, nil

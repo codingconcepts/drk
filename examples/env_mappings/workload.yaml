@@ -1,0 +1,22 @@
+arg_mappings:
+  FLY_REGION:
+    iad: aws-us-east-1
+    ord: aws-us-east-2
+
+workflows:
+
+  hello_world:
+    vus: 1
+    queries:
+      - name: hello
+        rate: 1/1s
+
+activities:
+
+  hello:
+    args:
+      - type: env
+        name: FLY_REGION
+    type: exec
+    query: |-
+      INSERT INTO t (region) VALUES ($1);

@@ -16,9 +16,14 @@ type dependencyFunc func(*VU) bool
 func dependencyFuncNoop(*VU) bool { return true }
 
 type Drk struct {
-	Workflows  map[string]Workflow `yaml:"workflows"`
-	Activities map[string]Query    `yaml:"activities"`
+	EnvMappings map[string]EnvMapping `yaml:"arg_mappings"`
+	Workflows   map[string]Workflow   `yaml:"workflows"`
+	Activities  map[string]Query      `yaml:"activities"`
 }
+
+type EnvMapping map[string]string
+
+type envMappingGenerator func(env, value string) (string, bool)
 
 type WorkflowQuery struct {
 	Name string `yaml:"name"`
@@ -102,6 +107,11 @@ func (a *Arg) UnmarshalYAML(unmarshal func(any) error) error {
 	case "const":
 		if a.generator, a.dependencyCheck, err = parseArgTypeConst(raw); err != nil {
 			return fmt.Errorf("parsing const arg type: %w", err)
+		}
+
+	case "env":
+		if a.generator, a.dependencyCheck, err = parseArgTypeEnv(raw); err != nil {
+			return fmt.Errorf("parsing env arg type: %w", err)
 		}
 
 	default:
