@@ -1,0 +1,49 @@
+workflows:
+
+  init:
+    setup_queries:
+      - create_accounts
+  
+  individual:
+    vus: 1
+    setup_queries:
+      - fetch_accounts
+    queries:
+      - name: make_transfer
+        rate: 1/1s
+
+activities:
+
+  create_accounts:
+    type: exec
+    args:
+      - type: int
+        min: 1000
+        max: 1000
+    query: |-
+      INSERT INTO account (balance)
+      SELECT 1000
+      FROM generate_series(1, $1);
+
+  fetch_accounts:
+    type: query
+    query: |-
+      SELECT id FROM account LIMIT 100
+
+  make_transfer:
+    args:
+      - type: ref
+        query: fetch_accounts
+        column: id
+        count: 2
+      - type: float
+        min: 10.0
+        max: 100.0
+    type: query
+    query: |-
+      UPDATE account SET
+        balance = CASE 
+                    WHEN id = $1 THEN balance + $3
+                    WHEN id = $2 THEN balance - $3
+                  END
+      WHERE id IN ($1, $2)

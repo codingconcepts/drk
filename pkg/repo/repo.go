@@ -1,9 +1,13 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 type Queryer interface {
@@ -12,19 +16,24 @@ type Queryer interface {
 }
 
 type DBRepo struct {
-	db *sql.DB
+	db      *sql.DB
+	timeout time.Duration
 }
 
-func NewDBRepo(db *sql.DB) *DBRepo {
+func NewDBRepo(db *sql.DB, timeout time.Duration) *DBRepo {
 	return &DBRepo{
-		db: db,
+		db:      db,
+		timeout: timeout,
 	}
 }
 
 func (r *DBRepo) Query(query string, args ...any) ([]map[string]any, time.Duration, error) {
 	start := time.Now()
 
-	rows, err := r.db.Query(query, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	defer cancel()
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("running query: %w", err)
 	}
@@ -39,7 +48,10 @@ func (r *DBRepo) Query(query string, args ...any) ([]map[string]any, time.Durati
 func (r *DBRepo) Exec(query string, args ...any) (time.Duration, error) {
 	start := time.Now()
 
-	_, err := r.db.Exec(query, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	defer cancel()
+
+	_, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return 0, fmt.Errorf("running query: %w", err)
 	}
@@ -52,6 +64,11 @@ func readRows(rows *sql.Rows) ([]map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting column names: %w", err)
 	}
+
+	// Convert to lower case to handle all databases.
+	columns = lo.Map(columns, func(s string, _ int) string {
+		return strings.ToLower(s)
+	})
 
 	values := make([]any, len(columns))
 	scanArgs := make([]any, len(columns))

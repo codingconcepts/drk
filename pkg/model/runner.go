@@ -70,6 +70,7 @@ func (r *Runner) Run() error {
 			return fmt.Errorf("running init workflow: %w", err)
 		}
 	}
+	r.logger.Info().Msg("finished init workflow")
 
 	for name, workflow := range r.cfg.Workflows {
 		eg.Go(func() error {
@@ -100,6 +101,8 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 	// Prepare VU.
 	vu := NewVU(r)
 
+	r.logger.Debug().Str("workflow", workflowName).Msgf("running setup queries")
+
 	for _, query := range workflow.SetupQueries {
 		act, ok := r.cfg.Activities[query]
 		if !ok {
@@ -115,6 +118,8 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 		vu.applyData(query, data)
 	}
 
+	r.logger.Debug().Str("workflow", workflowName).Msgf("finished setup queries")
+
 	// Stagger VU.
 	vu.stagger(workflow.Queries)
 
@@ -123,16 +128,25 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 
 	deadline := time.After(r.duration)
 
+	r.logger.Debug().Str("workflow", workflowName).Msgf("preparing workflow queries")
+
+	var activities int
 	for _, query := range workflow.Queries {
 		act, ok := r.cfg.Activities[query.Name]
 		if !ok {
 			return fmt.Errorf("missing activity: %q", query)
 		}
 
+		activities++
 		eg.Go(func() error {
 			return r.runActivity(vu, workflowName, query.Name, act, query.Rate, deadline)
 		})
 	}
+
+	r.logger.Debug().
+		Str("workflow", workflowName).
+		Int("activites", activities).
+		Msgf("running workflow queries")
 
 	return eg.Wait()
 }
@@ -147,6 +161,7 @@ func (r *Runner) runActivity(vu *VU, workflowName, queryName string, query Query
 				return a.dependencyCheck(vu)
 			})
 			if !depencenciesMet {
+				r.logger.Debug().Str("workflow", workflowName).Str("query", queryName).Msg("dependencies not met")
 				continue
 			}
 

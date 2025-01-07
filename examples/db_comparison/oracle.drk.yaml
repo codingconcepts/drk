@@ -1,0 +1,100 @@
+workflows:
+
+  init:
+    setup_queries:
+      - populate_customers
+      - populate_products
+
+  casual_customer:
+    vus: 1
+    setup_queries:
+      - fetch_customer
+      - fetch_product_names
+    queries:
+      - name: browse_product
+        rate: 1/1s
+      - name: add_to_basket
+        rate: 1/5s
+
+activities:
+
+  populate_customers:
+    type: exec
+    args:
+      - type: int
+        min: 20
+        max: 20
+    query: |-
+      INSERT INTO customer (id, email)
+      SELECT 
+        LEVEL AS id,
+        'customer_' || LEVEL || '@example.com' AS email
+      FROM DUAL
+      CONNECT BY LEVEL <= :p_limit
+
+  populate_products:
+    type: exec
+    args:
+      - type: int
+        min: 20
+        max: 20
+    query: |-
+      INSERT INTO product (id, name, price)
+      SELECT 
+        LEVEL AS id,
+        'product_' || LEVEL AS name,
+        dbms_random.value(1, 100)
+      FROM DUAL
+      CONNECT BY LEVEL <= :p_limit
+
+  fetch_customer:
+    type: query
+    query: |-
+      SELECT id
+      FROM customer
+      SAMPLE(10)
+      WHERE ROWNUM <= 1
+
+  fetch_product_names:
+    type: query
+    args:
+      - type: int
+        min: 10
+        max: 10
+    query: |-
+      SELECT name
+      FROM product
+      SAMPLE(10)
+      WHERE ROWNUM <= :p_limit
+
+  browse_product:
+    args:
+      - type: ref
+        query: fetch_product_names
+        column: name
+    type: query
+    query: |-
+      SELECT id FROM product
+      WHERE name = :p_name
+  
+  add_to_basket:
+    args:
+      - type: ref
+        query: fetch_customer
+        column: id
+      - type: ref
+        query: browse_product
+        column: id
+      - type: int
+        min: 1
+        max: 5
+    type: exec
+    query: |-
+      MERGE INTO basket b
+      USING (SELECT :p_customer_id as customer_id, :p_product_id as product_id FROM dual) s
+      ON (b.customer_id = s.customer_id AND b.product_id = s.product_id)
+      WHEN MATCHED THEN
+        UPDATE SET b.quantity = b.quantity + :p_quantity
+      WHEN NOT MATCHED THEN
+        INSERT (customer_id, product_id, quantity)
+        VALUES (s.customer_id, s.product_id, :p_quantity)

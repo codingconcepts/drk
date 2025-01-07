@@ -17,6 +17,7 @@ require (
 	github.com/codingconcepts/env v0.0.0-20240618133406-5b0845441187
 	github.com/codingconcepts/ring v0.0.0-20240125133104-23e758eb5030
 	github.com/go-sql-driver/mysql v1.8.1
+	github.com/sijms/go-ora/v2 v2.8.22
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
 	golang.org/x/sync v0.10.0

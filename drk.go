@@ -21,6 +21,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	_ "github.com/sijms/go-ora/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,6 +45,7 @@ func main() {
 	debug := flag.Bool("debug", false, "enable verbose logging")
 	showVersion := flag.Bool("version", false, "display the application version")
 	pretty := flag.Bool("pretty", false, "print results to the terminal in a table")
+	queryTimeout := flag.Duration("query-timeout", time.Second*5, "timeout for database queries")
 	flag.Parse()
 
 	// Override settings with values from the environment if provided.
@@ -83,7 +85,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("connecting to database: %v", err)
 	}
-	queryer := repo.NewDBRepo(db)
+	queryer := repo.NewDBRepo(db, *queryTimeout)
 
 	runner, err := model.NewRunner(cfg, queryer, e.URL, e.Driver, e.Duration, &logger)
 	if err != nil {
