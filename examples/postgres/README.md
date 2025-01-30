@@ -13,7 +13,7 @@ docker run -d \
 Create and populate database objects
 
 ```sh
-cockroach sql --insecure -f examples/db_comparison/postgres.create.sql
+cockroach sql --insecure -f examples/db_comparison/create.sql
 ```
 
 Run drk
@@ -21,6 +21,6 @@ Run drk
 ```sh
 # CockroachDB
 drk \
---config examples/db_comparison/postgres.drk.yaml \
+--config examples/db_comparison/drk.yaml \
 --url "postgres://root@localhost:26257?sslmode=disable"
 ```
