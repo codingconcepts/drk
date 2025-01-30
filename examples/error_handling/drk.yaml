@@ -1,0 +1,36 @@
+workflows:
+  casual_customer:
+    vus: 1
+    queries:
+      - name: add_to_basket
+        rate: 1/1s
+      - name: add_to_basket_err
+        rate: 1/1s
+
+activities:
+  add_to_basket:
+    args:
+      - type: gen
+        value: uuid
+      - type: gen
+        value: uuid
+        column: id
+      - type: int
+        min: 1
+        max: 10
+    type: exec
+    query: |-
+      INSERT INTO basket (shopper_id, product_id, quantity)
+      VALUES ($1, $2, $3)
+
+  add_to_basket_err:
+    args:
+      - type: gen
+        value: uuid
+      - type: gen
+        value: uuid
+        column: id
+    type: exec
+    query: |-
+      INSERT INTO basket (shopper_id, product_id)
+      VALUES ($1, $2)

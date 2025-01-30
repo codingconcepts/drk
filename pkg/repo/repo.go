@@ -27,36 +27,45 @@ func NewDBRepo(db *sql.DB, timeout time.Duration) *DBRepo {
 	}
 }
 
-func (r *DBRepo) Query(query string, args ...any) ([]map[string]any, time.Duration, error) {
+func (r *DBRepo) Query(query string, args ...any) (values []map[string]any, taken time.Duration, err error) {
 	start := time.Now()
+
+	defer func() {
+		taken = time.Since(start)
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, 0, fmt.Errorf("running query: %w", err)
+		err = fmt.Errorf("running query: %w", err)
 	}
 
-	data, err := readRows(rows)
+	values, err = readRows(rows)
 	if err != nil {
-		return nil, 0, fmt.Errorf("reading rows: %w", err)
+		err = fmt.Errorf("reading rows: %w", err)
 	}
-	return data, time.Since(start), nil
+
+	return
 }
 
-func (r *DBRepo) Exec(query string, args ...any) (time.Duration, error) {
+func (r *DBRepo) Exec(query string, args ...any) (taken time.Duration, err error) {
 	start := time.Now()
+
+	defer func() {
+		taken = time.Since(start)
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 
-	_, err := r.db.ExecContext(ctx, query, args...)
+	_, err = r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return 0, fmt.Errorf("running query: %w", err)
+		err = fmt.Errorf("running query: %w", err)
 	}
 
-	return time.Since(start), nil
+	return
 }
 
 func readRows(rows *sql.Rows) ([]map[string]any, error) {

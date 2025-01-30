@@ -104,9 +104,9 @@ func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 	events := r.GetEventStream()
 	printTicks := time.Tick(time.Second)
 
-	eventCounts := map[string]int{}
-	errorCounts := map[string]int{}
-	eventLatencies := map[string]*ring.Ring[time.Duration]{}
+	errors := map[string]int{}
+	counts := map[string]int{}
+	latencies := map[string]*ring.Ring[time.Duration]{}
 
 	for {
 		select {
@@ -115,22 +115,22 @@ func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 
 			// Increment counts.
 			if event.Err != nil {
-				errorCounts[key]++
+				counts[key]++
 			} else {
-				eventCounts[key]++
+				errors[key]++
 			}
 
 			// Add to event latencies.
-			if _, ok := eventLatencies[key]; !ok {
-				eventLatencies[key] = ring.New[time.Duration](1000)
+			if _, ok := latencies[key]; !ok {
+				latencies[key] = ring.New[time.Duration](1000)
 			}
-			eventLatencies[key].Add(event.Duration)
+			latencies[key].Add(event.Duration)
 
 		case <-printTicks:
 			if pretty {
-				printTable(eventCounts, errorCounts, eventLatencies)
+				printTable(errors, counts, latencies)
 			} else {
-				printLine(eventCounts, errorCounts, eventLatencies, logger)
+				printLine(errors, counts, latencies, logger)
 			}
 		}
 	}
@@ -161,7 +161,7 @@ func printTable(counts, errors map[string]int, latencies map[string]*ring.Ring[t
 type filter func(string, int) bool
 
 func writeEvent(w io.Writer, counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration], f filter) {
-	keys := lo.Keys(counts)
+	keys := lo.Uniq(append(lo.Keys(counts), lo.Keys(errors)...))
 	sort.Strings(keys)
 
 	fmt.Fprintln(w, "Query\tRequests\tErrors\tAverage Latency")
@@ -169,20 +169,22 @@ func writeEvent(w io.Writer, counts, errors map[string]int, latencies map[string
 
 	for _, key := range lo.Filter(keys, f) {
 		latencies := latencies[key].Slice()
+		errors, hasErrors := errors[key]
+		counts, hasCount := counts[key]
 
 		fmt.Fprintf(
 			w,
 			"%s\t%d\t%d\t%s\n",
 			strings.TrimPrefix(key, "*"),
-			counts[key],
-			errors[key],
+			lo.Ternary(hasCount, counts, 0),
+			lo.Ternary(hasErrors, errors, 0),
 			lo.Sum(latencies)/time.Duration(len(latencies)),
 		)
 	}
 }
 
 func printLine(counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration], logger *zerolog.Logger) {
-	keys := lo.Keys(counts)
+	keys := lo.Uniq(append(lo.Keys(counts), lo.Keys(errors)...))
 	sort.Strings(keys)
 
 	f := func(s string, _ int) bool {
@@ -191,11 +193,13 @@ func printLine(counts, errors map[string]int, latencies map[string]*ring.Ring[ti
 
 	for _, key := range lo.Filter(keys, f) {
 		latencies := latencies[key].Slice()
+		errors, hasErrors := errors[key]
+		counts, hasCount := counts[key]
 
 		logger.Info().
 			Str("key", key).
-			Int("count", counts[key]).
-			Int("errors", errors[key]).
+			Int("counts", lo.Ternary(hasCount, counts, 0)).
+			Int("errors", lo.Ternary(hasErrors, errors, 0)).
 			Dur("avg_latency", lo.Sum(latencies)/time.Duration(len(latencies))).
 			Msg("")
 	}
