@@ -1,12 +1,11 @@
 workflows:
-
   init:
     setup_queries:
       - populate_customers
       - populate_products
 
   casual_customer:
-    vus: 1
+    vus: 20
     setup_queries:
       - fetch_customer
       - fetch_product_names
@@ -17,7 +16,6 @@ workflows:
         rate: 1/5s
 
 activities:
-
   populate_customers:
     type: exec
     args:
@@ -76,7 +74,7 @@ activities:
     query: |-
       SELECT id FROM product
       WHERE name = :p_name
-  
+
   add_to_basket:
     args:
       - type: ref

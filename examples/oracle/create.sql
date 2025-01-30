@@ -44,19 +44,20 @@ CREATE TABLE basket (
   product_id NUMBER NOT NULL,
   quantity NUMBER NOT NULL,
 
-  CONSTRAINT pk_basket PRIMARY KEY (customer_id, product_id),
-  CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES customer (id),
-  CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES product (id)
+  PRIMARY KEY (customer_id, product_id),
+  FOREIGN KEY (customer_id) REFERENCES customer (id),
+  FOREIGN KEY (product_id) REFERENCES product (id)
 );
 
 -- Purchase
 
 CREATE TABLE purchase (
-  id NUMBER PRIMARY KEY,
+  id NUMBER NOT NULL,
   customer_id NUMBER NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-  CONSTRAINT fk_purchase_customer FOREIGN KEY (customer_id) REFERENCES customer (id)
+  PRIMARY KEY (id),
+  FOREIGN KEY (customer_id) REFERENCES customer (id)
 );
 
 CREATE SEQUENCE purchase_seq START WITH 1 INCREMENT BY 1;
@@ -69,5 +70,3 @@ BEGIN
   INTO   :new.id
   FROM   dual;
 END;
-
-/

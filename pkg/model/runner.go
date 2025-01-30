@@ -134,6 +134,7 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 	for _, query := range workflow.Queries {
 		act, ok := r.cfg.Activities[query.Name]
 		if !ok {
+			r.logger.Warn().Str("name", query.Name).Msgf("missing activity")
 			return fmt.Errorf("missing activity: %q", query)
 		}
 
@@ -187,7 +188,7 @@ func (r *Runner) runQuery(vu *VU, query Query) ([]map[string]any, time.Duration,
 		return nil, 0, fmt.Errorf("generating args: %w", err)
 	}
 
-	r.logger.Debug().Msgf("[STMT] %s", query.Query)
+	r.logger.Debug().Str("type", query.Type).Msgf("[STMT] %s", query.Query)
 	r.logger.Debug().Msgf("\t[ARGS] %v", args)
 
 	switch query.Type {

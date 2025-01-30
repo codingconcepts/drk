@@ -42,31 +42,44 @@ Usage of drk:
         display the application version
 ```
 
+### Supported databases
+
+* AWS DSQL ([example](examples/dsql))
+* CockroachDB ([example](examples/postgres))
+* Postgres ([example](examples/postgres))
+* MySQL ([example](examples/mysql))
+* Oracle ([example](examples/oracle))
+
 ### Running the binary
 
 For more examples see [examples](examples/) but here's the gist:
 
 ```sh
-# CockroachDB / Postgres
+# AWS CockroachDB / Postgres
 drk \
 --driver pgx \
 --url "postgres://root@localhost:26257?sslmode=disable"
---config examples/db_comparison/postgres.drk.yaml \
+--config examples/postgres/drk.yaml \
 
 # DSQL
-AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
-AWS_REGION=${AWS_REGION} \
+export PGPASSWORD="The value of your DSQL cluster's PGPASSWORD"
+
 drk \
---driver dsql \
+--driver pgx \
 --url "postgres://YOUR_ENDPOINT.dsql.us-east-1.on.aws:5432/postgres?user=admin&sslmode=verify-full&sslrootcert=AmazonRootCA1.pem"
---config examples/db_comparison/postgres.drk.yaml \
+--config examples/dsql/drk.yaml \
 
 # MySQL
 drk \
 --driver mysql
 --url "root:password@tcp(localhost:3306)/mysql"
---config examples/db_comparison/mysql.drk.yaml \
+--config examples/mysql/drk.yaml \
+
+# Oracle
+drk \
+--driver oracle
+--url "oracle://system:password@localhost:1521/defaultdb" \
+--config examples/oracle/drk.yaml \
 ```
 
 ### Running with Docker

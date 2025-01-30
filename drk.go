@@ -12,7 +12,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	_ "github.com/codingconcepts/drk/pkg/driver"
 	"github.com/codingconcepts/drk/pkg/model"
 	"github.com/codingconcepts/drk/pkg/repo"
 	"github.com/codingconcepts/env"

@@ -1,0 +1,78 @@
+workflows:
+
+  init:
+    setup_queries:
+      - populate_products
+
+  casual_shopper:
+    vus: 10
+    setup_queries:
+      - create_shopper
+      - fetch_product_names
+    queries:
+      - name: browse_product
+        rate: 2/1s
+      - name: add_to_basket
+        rate: 1/5s
+
+activities:
+
+  populate_products:
+    type: exec
+    query: |-
+      INSERT INTO product (name, price) VALUES
+        ('a', 0.99), ('f', 10.99), ('k', 100.99),
+        ('b', 1.99), ('g', 11.99), ('l', 101.99),
+        ('c', 2.99), ('h', 12.99), ('m', 102.99),
+        ('d', 3.99), ('i', 13.99), ('n', 103.99),
+        ('e', 4.99), ('j', 14.99), ('o', 104.99);
+
+  create_shopper:
+    type: query
+    args:
+      - type: gen
+        value: email
+    query: |-
+      INSERT INTO shopper (email)
+      VALUES ($1)
+      RETURNING id
+
+  fetch_product_names:
+    type: query
+    args:
+      - type: int
+        min: 10
+        max: 10
+    query: |-
+      SELECT name
+      FROM product
+      ORDER BY random()
+      LIMIT $1;
+
+  browse_product:
+    args:
+      - type: ref
+        query: fetch_product_names
+        column: name
+    type: query
+    query: |-
+      SELECT id FROM product
+      WHERE name = $1
+  
+  add_to_basket:
+    args:
+      - type: ref
+        query: create_shopper
+        column: id
+      - type: ref
+        query: browse_product
+        column: id
+      - type: int
+        min: 1
+        max: 5
+    type: query
+    query: |-
+      INSERT INTO basket (shopper_id, product_id, quantity)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (shopper_id, product_id) 
+      DO UPDATE SET quantity = basket.quantity + EXCLUDED.quantity
