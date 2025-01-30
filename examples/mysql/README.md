@@ -19,14 +19,14 @@ docker run -d \
 Create and populate database objects
 
 ```sh
-mysql -h localhost -u root -p mysql --protocol=tcp < examples/db_comparison/create.sql
+mysql -h localhost -u root -p mysql --protocol=tcp < examples/mysql/create.sql
 ```
 
 Run drk
 
 ```sh
 drk \
---config examples/db_comparison/drk.yaml \
+--config examples/mysql/drk.yaml \
 --url "root:password@tcp(localhost:3306)/mysql" \
 --driver mysql
 ```
