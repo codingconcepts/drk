@@ -13,7 +13,6 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.55.5
 	github.com/codingconcepts/env v0.0.0-20240618133406-5b0845441187
 	github.com/codingconcepts/ring v0.0.0-20240125133104-23e758eb5030
 	github.com/go-sql-driver/mysql v1.8.1
@@ -29,7 +28,6 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

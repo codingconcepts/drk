@@ -86,3 +86,66 @@ func TestInsertStatement(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractColumnValues(t *testing.T) {
+	cases := []struct {
+		name      string
+		columns   []string
+		returning []string
+		exp       []map[string]any
+	}{
+		{
+			name:      "all columns",
+			columns:   []string{"id", "name", "price"},
+			returning: []string{"id", "name", "price"},
+			exp: []map[string]any{
+				{"id": "a403ae29-4d41-468a-a359-ac0e898772de", "name": "a", "price": 1.99},
+				{"id": "bf7a83bc-69ea-41fa-a218-a0522b08c245", "name": "b", "price": 2.99},
+				{"id": "c9b86e0b-94ea-467a-b803-459e179fa82b", "name": "c", "price": 3.99},
+			},
+		},
+		{
+			name:      "first column",
+			columns:   []string{"id", "name", "price"},
+			returning: []string{"id"},
+			exp: []map[string]any{
+				{"id": "a403ae29-4d41-468a-a359-ac0e898772de"},
+				{"id": "bf7a83bc-69ea-41fa-a218-a0522b08c245"},
+				{"id": "c9b86e0b-94ea-467a-b803-459e179fa82b"},
+			},
+		},
+		{
+			name:      "middle column",
+			columns:   []string{"id", "name", "price"},
+			returning: []string{"name"},
+			exp: []map[string]any{
+				{"name": "a"},
+				{"name": "b"},
+				{"name": "c"},
+			},
+		},
+		{
+			name:      "last column",
+			columns:   []string{"id", "name", "price"},
+			returning: []string{"price"},
+			exp: []map[string]any{
+				{"price": 1.99},
+				{"price": 2.99},
+				{"price": 3.99},
+			},
+		},
+	}
+
+	data := [][]any{
+		{"a403ae29-4d41-468a-a359-ac0e898772de", "a", 1.99},
+		{"bf7a83bc-69ea-41fa-a218-a0522b08c245", "b", 2.99},
+		{"c9b86e0b-94ea-467a-b803-459e179fa82b", "c", 3.99},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			act := extractColumnValues(c.columns, c.returning, data)
+			assert.Equal(t, c.exp, act)
+		})
+	}
+}

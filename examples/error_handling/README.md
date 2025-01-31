@@ -25,3 +25,19 @@ go run drk.go \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --debug
 ```
+
+### Debugging
+
+View counts
+
+```sh
+cockroach sql --insecure -e "SELECT 'shopper', COUNT(*) FROM shopper UNION ALL SELECT 'product', COUNT(*) FROM product UNION ALL SELECT 'basket', COUNT(*) FROM basket;"
+```
+
+### Teardown
+
+Data
+
+```sh
+cockroach sql --insecure -e "TRUNCATE basket; TRUNCATE shopper CASCADE; TRUNCATE product CASCADE;"
+```

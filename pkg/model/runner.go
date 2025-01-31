@@ -125,7 +125,7 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 			r.events <- Event{Workflow: "*" + workflowName, Name: query, Duration: taken}
 			vu.applyData(query, data)
 
-			return nil
+			continue
 		}
 
 		// Otherwise, the activity is a regular query.
@@ -228,13 +228,13 @@ func (r *Runner) runBatch(vu *VU, query Query) ([]map[string]any, time.Duration,
 			Int("current", i+query.Batch.Size).
 			Msgf("[LOAD] %s", query.Query)
 
-		result, taken, err := r.db.Load(vu, *query.Batch, args)
-		results = append(results, result...)
-		totalElapsed += taken
-
+		taken, err := r.db.Load(vu, *query.Batch, args)
 		if err != nil {
 			return nil, totalElapsed, fmt.Errorf("loading batch: %w", err)
 		}
+
+		results = append(results, extractColumnValues(query.Batch.Columns, query.Batch.Returning, args)...)
+		totalElapsed += taken
 	}
 
 	return results, totalElapsed, nil

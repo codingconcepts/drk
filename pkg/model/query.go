@@ -60,3 +60,24 @@ func insertStatement(argGenerator func() string, batch Batch, rows [][]any) (str
 
 	return b.String(), nil
 }
+
+func extractColumnValues(columns, returning []string, data [][]any) []map[string]any {
+	output := []map[string]any{}
+	colMap := make(map[string]int)
+
+	for i, col := range columns {
+		colMap[col] = i
+	}
+
+	for _, row := range data {
+		item := make(map[string]any)
+		for _, retCol := range returning {
+			if pos, ok := colMap[retCol]; ok && pos < len(row) {
+				item[retCol] = row[pos]
+			}
+		}
+		output = append(output, item)
+	}
+
+	return output
+}
