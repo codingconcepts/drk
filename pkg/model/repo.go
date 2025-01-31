@@ -1,4 +1,4 @@
-package repo
+package model
 
 import (
 	"context"
@@ -13,16 +13,19 @@ import (
 type Queryer interface {
 	Query(query string, args ...any) ([]map[string]any, time.Duration, error)
 	Exec(query string, args ...any) (time.Duration, error)
+	Load(vu *VU, batch Batch, args [][]any) ([]map[string]any, time.Duration, error)
 }
 
 type DBRepo struct {
 	db      *sql.DB
+	driver  string
 	timeout time.Duration
 }
 
-func NewDBRepo(db *sql.DB, timeout time.Duration) *DBRepo {
+func NewDBRepo(db *sql.DB, driver string, timeout time.Duration) *DBRepo {
 	return &DBRepo{
 		db:      db,
+		driver:  driver,
 		timeout: timeout,
 	}
 }
@@ -66,6 +69,16 @@ func (r *DBRepo) Exec(query string, args ...any) (taken time.Duration, err error
 	}
 
 	return
+}
+
+func (r *DBRepo) Load(vu *VU, batch Batch, rows [][]any) ([]map[string]any, time.Duration, error) {
+	argGenerator := argGenerator(r.driver)
+	stmt, err := insertStatement(argGenerator, batch, rows)
+	if err != nil {
+		return nil, 0, fmt.Errorf("generating insert statement: %w", err)
+	}
+
+	return r.Query(stmt, lo.Flatten(rows)...)
 }
 
 func readRows(rows *sql.Rows) ([]map[string]any, error) {

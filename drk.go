@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/model"
-	"github.com/codingconcepts/drk/pkg/repo"
 	"github.com/codingconcepts/env"
 	"github.com/codingconcepts/ring"
 	_ "github.com/go-sql-driver/mysql"
@@ -84,7 +83,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("connecting to database: %v", err)
 	}
-	queryer := repo.NewDBRepo(db, *queryTimeout)
+	queryer := model.NewDBRepo(db, e.Driver, *queryTimeout)
 
 	runner, err := model.NewRunner(cfg, queryer, e.URL, e.Driver, e.Duration, &logger)
 	if err != nil {

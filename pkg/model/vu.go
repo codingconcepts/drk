@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -40,6 +41,9 @@ func (vu *VU) stagger(queries []WorkflowQuery) {
 func (vu *VU) applyData(query string, data []map[string]any) {
 	vu.dataMu.Lock()
 	defer vu.dataMu.Unlock()
+
+	log.Println("92W378HrMV9283HRMV289", query)
+	log.Println("92W378HrMV9283HRMV289", data)
 
 	vu.data[query] = data
 }

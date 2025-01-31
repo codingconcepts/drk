@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/codingconcepts/drk/pkg/repo"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
@@ -16,7 +15,8 @@ const (
 )
 
 type Runner struct {
-	db          repo.Queryer
+	db          Queryer
+	driver      string
 	cfg         *Drk
 	envMappings envMappingGenerator
 	duration    time.Duration
@@ -24,9 +24,10 @@ type Runner struct {
 	logger      *zerolog.Logger
 }
 
-func NewRunner(cfg *Drk, db repo.Queryer, url, driver string, duration time.Duration, logger *zerolog.Logger) (*Runner, error) {
+func NewRunner(cfg *Drk, db Queryer, url, driver string, duration time.Duration, logger *zerolog.Logger) (*Runner, error) {
 	r := Runner{
 		db:          db,
+		driver:      driver,
 		cfg:         cfg,
 		envMappings: createEnvMappingGenerator(cfg),
 		duration:    duration,
@@ -109,11 +110,28 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 			return fmt.Errorf("missing activity: %q", query)
 		}
 
-		data, taken, err := r.runQuery(vu, act)
-		if err != nil {
-			r.logger.Warn().Str("query", query).Any("error", err.Error()).Msg("running query")
-			r.events <- Event{Workflow: workflowName, Name: query, Duration: taken, Err: err}
+		var data []map[string]any
+		var taken time.Duration
+		var err error
 
+		// If the activity is a batch load of data, run this.
+		if act.Batch != nil {
+			data, taken, err = r.runBatch(vu, act)
+			if err != nil {
+				r.events <- Event{Workflow: workflowName, Name: query, Duration: taken, Err: err}
+				return fmt.Errorf("running query %q: %w", query, err)
+			}
+
+			r.events <- Event{Workflow: "*" + workflowName, Name: query, Duration: taken}
+			vu.applyData(query, data)
+
+			return nil
+		}
+
+		// Otherwise, the activity is a regular query.
+		data, taken, err = r.runQuery(vu, act)
+		if err != nil {
+			r.events <- Event{Workflow: workflowName, Name: query, Duration: taken, Err: err}
 			return fmt.Errorf("running query %q: %w", query, err)
 		}
 
@@ -183,6 +201,43 @@ func (r *Runner) runActivity(vu *VU, workflowName, queryName string, query Query
 			return nil
 		}
 	}
+}
+
+func (r *Runner) runBatch(vu *VU, query Query) ([]map[string]any, time.Duration, error) {
+	var totalElapsed time.Duration
+
+	// Process rows in batches until the total number of rows have been loaded.
+	var results []map[string]any
+	for i := 0; i < query.Batch.Total; i += query.Batch.Size {
+		args, err := TimesErr(query.Batch.Size, func(_ int) ([]any, error) {
+			a, err := vu.generateArgs(query.Args)
+			if err != nil {
+				return nil, err
+			}
+
+			return a, nil
+		})
+
+		if err != nil {
+			return nil, 0, fmt.Errorf("generating args: %w", err)
+		}
+
+		r.logger.Info().
+			Str("type", query.Type).
+			Int("total", query.Batch.Total).
+			Int("current", i+query.Batch.Size).
+			Msgf("[LOAD] %s", query.Query)
+
+		result, taken, err := r.db.Load(vu, *query.Batch, args)
+		results = append(results, result...)
+		totalElapsed += taken
+
+		if err != nil {
+			return nil, totalElapsed, fmt.Errorf("loading batch: %w", err)
+		}
+	}
+
+	return results, totalElapsed, nil
 }
 
 func (r *Runner) runQuery(vu *VU, query Query) ([]map[string]any, time.Duration, error) {

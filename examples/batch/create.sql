@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS product (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name STRING NOT NULL,
+  price DECIMAL NOT NULL
+);

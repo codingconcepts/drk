@@ -34,6 +34,15 @@ type Query struct {
 	Type  string `yaml:"type"`
 	Args  []Arg  `yaml:"args"`
 	Query string `yaml:"query"`
+	Batch *Batch `yaml:"batch"`
+}
+
+type Batch struct {
+	Total     int      `yaml:"total"`
+	Size      int      `yaml:"size"`
+	Table     string   `yaml:"table"`
+	Columns   []string `yaml:"columns"`
+	Returning []string `yaml:"returning"`
 }
 
 type Rate struct {

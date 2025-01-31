@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"os"
 	"strings"
@@ -42,8 +43,7 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 			if err != nil {
 				return nil, err
 			}
-
-			return Float(min, max), nil
+			return math.Round(Float(min, max)*100) / 100, nil
 
 		case "timestamp":
 			minStr, maxStr, err := parseMinMax[string](raw)
@@ -224,10 +224,19 @@ func parseField[T any](m map[string]any, key string) (T, error) {
 		return *new(T), FieldMissingErr{Name: key}
 	}
 
-	value, ok := valueRaw.(T)
-	if !ok {
-		return *new(T), fmt.Errorf("field type mismatch (got: %T exp: %T)", valueRaw, *new(T))
+	// Try direct type assertion first and return if successful.
+	if value, ok := valueRaw.(T); ok {
+		return value, nil
 	}
 
-	return value, nil
+	// Handle special case: int to float conversion
+	var zeroT T
+	switch any(zeroT).(type) {
+	case float32, float64:
+		if intVal, ok := valueRaw.(int); ok {
+			return any(float64(intVal)).(T), nil
+		}
+	}
+
+	return *new(T), fmt.Errorf("field type mismatch (got: %T exp: %T)", valueRaw, *new(T))
 }
