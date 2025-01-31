@@ -129,7 +129,6 @@ codingconcepts/drkd
 * Fix: No logging or printing in the event that first queries are all errors
 * Cohorts (run these, then these)
 * Commit and Rollback counts
-* Support bulk activities (e.g. insert 1,000 instead of just 1)
 * Add the ability to ensure uniqueness across two arg values (re-running until unique, or crashing after X attempts)
 * Update ref to allow more than one item to be seleted (e.g. add multiple products to a basket)
 * Optionally pass args in workflow queries
