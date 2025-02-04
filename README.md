@@ -132,15 +132,16 @@ Activities are referenced in the workflow by name but are created in the `activi
 A query is simply a SQL statement that can optionally accept arguments (see [Args](#args)) and is expressed in an activity as a string. For example, the following query inserts a new shopper into the shopper table and returns their id. This id can later be referenced by a combination of the activity name (in this case "create_shopper") and the field returned (in this case "id"):
 
 ```yaml
-create_shopper:
-  type: query
-  args:
-    - type: gen
-      value: email
-  query: |-
-    INSERT INTO shopper (email)
-    VALUES ($1)
-    RETURNING id
+activities:
+	create_shopper:
+		type: query
+		args:
+			- type: gen
+				value: email
+		query: |-
+			INSERT INTO shopper (email)
+			VALUES ($1)
+			RETURNING id
 ```
 
 ##### Args
