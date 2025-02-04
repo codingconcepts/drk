@@ -133,15 +133,15 @@ A query is simply a SQL statement that can optionally accept arguments (see [Arg
 
 ```yaml
 activities:
-	create_shopper:
-		type: query
-		args:
-			- type: gen
-				value: email
-		query: |-
-			INSERT INTO shopper (email)
-			VALUES ($1)
-			RETURNING id
+  create_shopper:
+    type: query
+    args:
+      - type: gen
+        value: email
+    query: |-
+      INSERT INTO shopper (email)
+      VALUES ($1)
+      RETURNING id
 ```
 
 ##### Args
