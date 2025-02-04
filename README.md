@@ -1,6 +1,22 @@
 # drk
 [wrk](https://github.com/wg/wrk) but for databases and pronounced [/dɜːk/](https://dictionary.cambridge.org/pronunciation/english/dirk).
 
+### Contents
+
+* [Installation](#installation)
+* [Usage](#usage)
+* [Supported Databases](#supported-databases)
+* [Configuration](#configuration)
+	* [VUs](#vus)
+	* [Workflows](#workflows)
+	* [Activities](#activities)
+	* [Queries](#queries)
+	* [Args](#args)
+* [Running the binary](#running-the-binary)
+* [Running with Docker](#running-with-docker)
+* [Deploying workloads via Docker](#deploying-workloads-via-docker)
+* [Todos](#todos)
+
 ### Installation
 
 Find the release that matches your architecture on the [releases](https://github.com/codingconcepts/drk/releases) page.
