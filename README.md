@@ -55,7 +55,7 @@ Usage of drk:
 For more examples see [examples](examples/) but here's the gist:
 
 ```sh
-# AWS CockroachDB / Postgres
+# CockroachDB / Postgres
 drk \
 --driver pgx \
 --url "postgres://root@localhost:26257?sslmode=disable"
