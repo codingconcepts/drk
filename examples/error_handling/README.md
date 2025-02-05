@@ -7,8 +7,7 @@ docker run -d \
 --name=cockroach \
 -p 26257:26257 \
 -p 8080:8080 \
-cockroachdb/cockroach:v24.2.0 start-single-node \
-  --insecure
+cockroachdb/cockroach:v24.2.0 start-single-node --insecure
 ```
 
 Create and populate database objects

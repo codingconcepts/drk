@@ -61,7 +61,7 @@ Usage of drk:
 ### Supported databases
 
 * AWS DSQL ([example](examples/dsql))
-* CockroachDB ([example](examples/postgres))
+* CockroachDB ([example](examples/ecommerce))
 * Postgres ([example](examples/postgres))
 * MySQL ([example](examples/mysql))
 * Oracle ([example](examples/oracle))
@@ -308,6 +308,26 @@ docker run --rm -it \
 -e URL="postgres://root@host.docker.internal:26257?sslmode=disable" \
 -e CONFIG=workloads/workload.yaml \
 codingconcepts/drkd
+```
+
+### Metrics
+
+drk exports Prometheus metrics on :2112/metrics and publishes a single histogram metric, grouped by workflow and query:
+
+* drk_request_duration_bucket
+* drk_request_duration_count
+* drk_request_duration_sum
+
+To show the requests per second by workflow and query, try the following PromQL expression:
+
+```
+rate(drk_request_duration_count[1m])
+```
+
+To show the request latencies by workflow and query, try the following PromQL expression:
+
+```
+histogram_quantile(0.99, sum by (le, workflow, query) (rate(drk_request_duration_bucket[1m])))
 ```
 
 ### Todos

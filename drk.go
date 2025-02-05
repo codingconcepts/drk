@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -18,13 +19,39 @@ import (
 	"github.com/codingconcepts/ring"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	_ "github.com/sijms/go-ora/v2"
 	"gopkg.in/yaml.v3"
 )
 
-var version string
+var (
+	version string
+
+	metricRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "drk_request_duration",
+		Buckets: []float64{
+			0.001, // 1ms
+			0.005, // 5ms
+			0.01,  // 10ms
+			0.025, // 25ms
+			0.05,  // 50ms
+			0.1,   // 100ms
+			0.25,  // 250ms
+			0.5,   // 500ms
+			1.0,   // 1s
+			2.5,   // 2.5s
+			5.0,   // 5s
+		},
+	},
+		[]string{
+			"workflow",
+			"query",
+		})
+)
 
 type envs struct {
 	Config   string        `env:"CONFIG"`
@@ -95,6 +122,9 @@ func main() {
 		go monitor(runner, &logger, *pretty)
 	}
 
+	http.Handle("/metrics", promhttp.Handler())
+	go http.ListenAndServe(":2112", nil)
+
 	if err = runner.Run(); err != nil {
 		log.Fatalf("error running config: %v", err)
 	}
@@ -125,6 +155,11 @@ func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 				latencies[key] = ring.New[time.Duration](1000)
 			}
 			latencies[key].Add(event.Duration)
+
+			// Add metric.
+			metricRequestDuration.
+				With(prometheus.Labels{"workflow": event.Workflow, "query": event.Name}).
+				Observe(event.Duration.Seconds())
 
 		case <-printTicks:
 			if pretty {
