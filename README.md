@@ -15,6 +15,7 @@
 * [Running the binary](#running-the-binary)
 * [Running with Docker](#running-with-docker)
 * [Deploying workloads via Docker](#deploying-workloads-via-docker)
+* [Metrics](#metrics)
 * [Todos](#todos)
 
 ### Installation
