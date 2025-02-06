@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"github.com/codingconcepts/env"
 	"github.com/codingconcepts/ring"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/googleapis/go-sql-spanner"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -65,7 +67,7 @@ func main() {
 
 	flag.StringVar(&e.Config, "config", "drk.yaml", "absolute or relative path to config file")
 	flag.StringVar(&e.URL, "url", "", "database connection string")
-	flag.StringVar(&e.Driver, "driver", "pgx", "database driver to use [pgx, mysql, dsql]")
+	flag.StringVar(&e.Driver, "driver", "pgx", "database driver to use [mysql, spanner, pgx]")
 	flag.DurationVar(&e.Duration, "duration", time.Minute*10, "total duration of simulation")
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
 	debug := flag.Bool("debug", false, "enable verbose logging")
@@ -112,6 +114,12 @@ func main() {
 		log.Fatalf("connecting to database: %v", err)
 	}
 	queryer := repo.NewDBRepo(db, *queryTimeout)
+
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	if err = db.PingContext(timeout); err != nil {
+		log.Fatalf("error connecting to database: %v", err)
+	}
 
 	runner, err := model.NewRunner(cfg, queryer, e.URL, e.Driver, e.Duration, &logger)
 	if err != nil {

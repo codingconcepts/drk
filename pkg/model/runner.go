@@ -171,6 +171,7 @@ func (r *Runner) runActivity(vu *VU, workflowName, queryName string, query Query
 
 			data, taken, err := r.runQuery(vu, query)
 			if err != nil {
+				r.logger.Warn().Str("workflow", workflowName).Str("query", queryName).Err(err).Msg("")
 				r.events <- Event{Workflow: workflowName, Name: queryName, Duration: taken, Err: err}
 				continue
 			}

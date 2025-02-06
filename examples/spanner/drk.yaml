@@ -1,0 +1,42 @@
+workflows:
+
+  write:
+    vus: 1
+    queries:
+      - name: insert
+        rate: 1/1s
+
+  read:
+    vus: 1
+    queries:
+      - name: select
+        rate: 1/2s
+
+activities:
+
+  insert:
+    type: exec
+    args:
+      - type: gen
+        value: product_name
+      - type: float
+        min: 10.0
+        max: 100.0
+    query: |-
+      INSERT INTO product (name, price)
+      VALUES (?, ?)
+
+  select:
+    type: query
+    args:
+      - type: float
+        min: 10.0
+        max: 30.0
+      - type: int
+        min: 1
+        max: 5
+    query: |-
+      SELECT id, name, price
+      FROM product
+      WHERE price < ?
+      LIMIT ?

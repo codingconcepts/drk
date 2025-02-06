@@ -42,6 +42,11 @@ func (r *DBRepo) Query(query string, args ...any) (values []map[string]any, take
 		err = fmt.Errorf("running query: %w", err)
 	}
 
+	// Config may have specified query when it meant to specify exec.
+	if rows == nil {
+		return
+	}
+
 	values, err = readRows(rows)
 	if err != nil {
 		err = fmt.Errorf("reading rows: %w", err)
