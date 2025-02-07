@@ -249,7 +249,7 @@ The following examples demonstrate the generators available and how to use them:
 For more examples see [examples](examples/) but here's the gist:
 
 ```sh
-# CockroachDB / Postgres
+# CockroachDB / Postgres / Spanner (Postgres)
 drk \
 --driver pgx \
 --url "postgres://root@localhost:26257?sslmode=disable"
@@ -274,6 +274,12 @@ drk \
 --driver oracle
 --url "oracle://system:password@localhost:1521/defaultdb" \
 --config examples/oracle/drk.yaml \
+
+# Spanner
+drk \
+--driver spanner \
+--url projects/PROJECT/instances/INSTANCE/databases/DATABASE \
+--config examples/spanner/google_standard_sql/drk.yaml
 ```
 
 ### Running with Docker
