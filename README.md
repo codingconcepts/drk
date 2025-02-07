@@ -346,7 +346,6 @@ histogram_quantile(0.99, sum by (le, workflow, query) (rate(drk_request_duration
 
 ### Todos
 
-* Fix: No logging or printing in the event that first queries are all errors
 * Cohorts (run these, then these)
 * Commit and Rollback counts
 * Support bulk activities (e.g. insert 1,000 instead of just 1)
