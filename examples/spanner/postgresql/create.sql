@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS product (
+  id VARCHAR(36) PRIMARY KEY DEFAULT spanner.generate_uuid(),
+  name VARCHAR(255) NOT NULL,
+  price DECIMAL NOT NULL
+);

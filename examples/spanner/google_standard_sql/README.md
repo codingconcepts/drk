@@ -10,5 +10,5 @@ Run drk
 drk \
 --driver spanner \
 --url projects/PROJECT/instances/INSTANCE/databases/DATABASE \
---config examples/spanner/drk.yaml
+--config examples/spanner/google_standard_sql/drk.yaml
 ```

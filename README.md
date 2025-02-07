@@ -63,7 +63,9 @@ Usage of drk:
 
 * AWS DSQL ([example](examples/dsql))
 * CockroachDB ([example](examples/ecommerce))
-* Google Cloud Spanner ([example](examples/spanner)) - Google Standard SQL
+* Google Cloud Spanner
+  * Google Standard SQL ([example](examples/spanner/google_standard_sql))
+  * PostgreSQL ([example](examples/spanner/postgresql))
 * Postgres ([example](examples/postgres))
 * MySQL ([example](examples/mysql))
 * Oracle ([example](examples/oracle))
