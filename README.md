@@ -249,13 +249,13 @@ The following examples demonstrate the generators available and how to use them:
 For more examples see [examples](examples/) but here's the gist:
 
 ```sh
-# AWS CockroachDB / Postgres
+# CockroachDB / Postgres
 drk \
 --driver pgx \
 --url "postgres://root@localhost:26257?sslmode=disable"
 --config examples/postgres/drk.yaml \
 
-# DSQL
+# AWS DSQL
 export PGPASSWORD="The value of your DSQL cluster's PGPASSWORD"
 
 drk \
