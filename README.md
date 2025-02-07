@@ -48,11 +48,15 @@ Usage of drk:
   -debug
         enable verbose logging
   -driver string
-        database driver to use [pgx, mysql, dsql] (default "pgx")
+        database driver to use [mysql, spanner, pgx] (default "pgx")
   -dry-run
         if specified, prints config and exits
   -duration duration
         total duration of simulation (default 10m0s)
+  -pretty
+        print results to the terminal in a table
+  -query-timeout duration
+        timeout for database queries (default 5s)
   -url string
         database connection string
   -version
