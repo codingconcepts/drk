@@ -275,7 +275,7 @@ drk \
 --url "oracle://system:password@localhost:1521/defaultdb" \
 --config examples/oracle/drk.yaml \
 
-# Spanner
+# Spanner (Google Standard SQL)
 drk \
 --driver spanner \
 --url projects/PROJECT/instances/INSTANCE/databases/DATABASE \
