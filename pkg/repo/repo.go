@@ -18,12 +18,14 @@ type Queryer interface {
 type DBRepo struct {
 	db      *sql.DB
 	timeout time.Duration
+	retries int
 }
 
-func NewDBRepo(db *sql.DB, timeout time.Duration) *DBRepo {
+func NewDBRepo(db *sql.DB, timeout time.Duration, retries int) *DBRepo {
 	return &DBRepo{
 		db:      db,
 		timeout: timeout,
+		retries: retries,
 	}
 }
 
@@ -37,9 +39,21 @@ func (r *DBRepo) Query(query string, args ...any) (values []map[string]any, take
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	var rows *sql.Rows
+
+	for range r.retries {
+		rows, err = r.db.QueryContext(ctx, query, args...)
+		if err != nil {
+			time.Sleep(time.Millisecond * 10)
+			continue
+		}
+
+		break
+	}
+
 	if err != nil {
 		err = fmt.Errorf("running query: %w", err)
+		return
 	}
 
 	// Config may have specified query when it meant to specify exec.
@@ -65,7 +79,16 @@ func (r *DBRepo) Exec(query string, args ...any) (taken time.Duration, err error
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 
-	_, err = r.db.ExecContext(ctx, query, args...)
+	for range r.retries {
+		_, err = r.db.ExecContext(ctx, query, args...)
+		if err != nil {
+			time.Sleep(time.Millisecond * 10)
+			continue
+		}
+
+		break
+	}
+
 	if err != nil {
 		err = fmt.Errorf("running query: %w", err)
 	}

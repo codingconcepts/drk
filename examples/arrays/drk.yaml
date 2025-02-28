@@ -1,0 +1,19 @@
+workflows:
+
+  casual_shopper:
+    setup_queries:
+      - create_shopper
+
+activities:
+
+  create_shopper:
+    type: exec
+    args:
+      - type: gen
+        value: email
+      - type: array
+        min: 1
+        max: 5
+        value: product_name
+    query: |-
+      INSERT INTO shopper (email, favourite_products) VALUES ($1, $2)

@@ -57,6 +57,8 @@ Usage of drk:
         print results to the terminal in a table
   -query-timeout duration
         timeout for database queries (default 5s)
+  -retries int
+        number of request retries (default 1)
   -url string
         database connection string
   -version
@@ -346,6 +348,7 @@ histogram_quantile(0.99, sum by (le, workflow, query) (rate(drk_request_duration
 
 ### Todos
 
+* Array support
 * Cohorts (run these, then these)
 * Commit and Rollback counts
 * Support bulk activities (e.g. insert 1,000 instead of just 1)

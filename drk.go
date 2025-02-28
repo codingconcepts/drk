@@ -60,6 +60,7 @@ type envs struct {
 	URL      string        `env:"URL"`
 	Driver   string        `env:"DRIVER"`
 	Duration time.Duration `env:"DURATION"`
+	Retries  int           `env:"RETRIES"`
 }
 
 func main() {
@@ -69,6 +70,8 @@ func main() {
 	flag.StringVar(&e.URL, "url", "", "database connection string")
 	flag.StringVar(&e.Driver, "driver", "pgx", "database driver to use [mysql, spanner, pgx]")
 	flag.DurationVar(&e.Duration, "duration", time.Minute*10, "total duration of simulation")
+	flag.IntVar(&e.Retries, "retries", 1, "number of request retries")
+
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
 	debug := flag.Bool("debug", false, "enable verbose logging")
 	showVersion := flag.Bool("version", false, "display the application version")
@@ -113,7 +116,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("connecting to database: %v", err)
 	}
-	queryer := repo.NewDBRepo(db, *queryTimeout)
+	queryer := repo.NewDBRepo(db, *queryTimeout, e.Retries)
 
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
