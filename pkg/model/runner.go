@@ -74,7 +74,11 @@ func (r *Runner) Run() error {
 
 	for name, workflow := range r.cfg.Workflows {
 		eg.Go(func() error {
-			return r.runWorkflow(name, workflow)
+			return lo.Ternary(
+				workflow.RampFor > 0,
+				r.rampWorkflow(name, workflow),
+				r.runWorkflow(name, workflow),
+			)
 		})
 	}
 
@@ -83,6 +87,21 @@ func (r *Runner) Run() error {
 
 func (r *Runner) GetEventStream() <-chan Event {
 	return r.events
+}
+
+func (r *Runner) rampWorkflow(name string, workflow Workflow) error {
+	var eg errgroup.Group
+
+	stagger := workflow.RampFor / time.Duration(workflow.Vus)
+	for range workflow.Vus {
+		time.Sleep(stagger)
+
+		eg.Go(func() error {
+			return r.runVU(name, workflow)
+		})
+	}
+
+	return eg.Wait()
 }
 
 func (r *Runner) runWorkflow(name string, workflow Workflow) error {

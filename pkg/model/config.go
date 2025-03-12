@@ -70,6 +70,7 @@ type Workflow struct {
 	Queries      []WorkflowQuery `yaml:"queries"`
 	RunAfter     time.Duration   `yaml:"run_after"`
 	RunFor       time.Duration   `yaml:"run_for"`
+	RampFor      time.Duration   `yaml:"ramp_for"`
 }
 
 type Arg struct {

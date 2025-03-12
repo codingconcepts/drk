@@ -1,0 +1,15 @@
+workflows:
+
+  runner_1:
+    vus: 10
+    ramp_for: 10s
+    queries:
+      - name: select_1
+        rate: 1/1s
+
+activities:
+
+  select_1:
+    type: query
+    query: |-
+      SELECT 1

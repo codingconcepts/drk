@@ -356,4 +356,4 @@ histogram_quantile(0.99, sum by (le, workflow, query) (rate(drk_request_duration
 * Add the ability to ensure uniqueness across two arg values (re-running until unique, or crashing after X attempts)
 * Update ref to allow more than one item to be seleted (e.g. add multiple products to a basket)
 * Optionally pass args in workflow queries
-* Ramp VU's up and down
+* Ability to ramp VU's down
