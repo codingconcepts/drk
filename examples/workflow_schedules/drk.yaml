@@ -1,0 +1,28 @@
+workflows:
+
+  runner_1:
+    vus: 1
+    run_for: 10s
+    queries:
+      - name: select_1
+        rate: 1/1s
+  
+  runner_2:
+    vus: 1
+    run_after: 10s
+    run_for: 10s
+    queries:
+      - name: select_2
+        rate: 1/1s
+
+activities:
+
+  select_1:
+    type: query
+    query: |-
+      SELECT 1
+
+  select_2:
+    type: query
+    query: |-
+      SELECT 2

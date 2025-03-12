@@ -348,6 +348,7 @@ histogram_quantile(0.99, sum by (le, workflow, query) (rate(drk_request_duration
 
 ### Todos
 
+* Global arguments
 * Array support
 * Cohorts (run these, then these)
 * Commit and Rollback counts

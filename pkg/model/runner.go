@@ -88,7 +88,7 @@ func (r *Runner) GetEventStream() <-chan Event {
 func (r *Runner) runWorkflow(name string, workflow Workflow) error {
 	var eg errgroup.Group
 
-	for vu := 0; vu < workflow.Vus; vu++ {
+	for range workflow.Vus {
 		eg.Go(func() error {
 			return r.runVU(name, workflow)
 		})
@@ -98,6 +98,12 @@ func (r *Runner) runWorkflow(name string, workflow Workflow) error {
 }
 
 func (r *Runner) runVU(workflowName string, workflow Workflow) error {
+	// Delay start if required.
+	if workflow.RunAfter > 0 {
+		r.logger.Debug().Str("workflow", workflowName).Dur("for", workflow.RunAfter).Msgf("delaying")
+		time.Sleep(workflow.RunAfter)
+	}
+
 	// Prepare VU.
 	vu := NewVU(r)
 
@@ -129,7 +135,8 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 	// Start VU.
 	var eg errgroup.Group
 
-	deadline := time.After(r.duration)
+	// Finish early if required, otherwise, run until end of test.
+	deadline := time.After(lo.CoalesceOrEmpty(workflow.RunFor, r.duration))
 
 	r.logger.Debug().Str("workflow", workflowName).Msgf("preparing workflow queries")
 
@@ -180,7 +187,7 @@ func (r *Runner) runActivity(vu *VU, workflowName, queryName string, query Query
 			vu.applyData(queryName, data)
 
 		case <-fin:
-			r.logger.Info().Str("query", queryName).Msg("received termination signal")
+			r.logger.Debug().Str("query", queryName).Msg("received termination signal")
 			return nil
 		}
 	}

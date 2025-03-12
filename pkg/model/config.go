@@ -68,6 +68,8 @@ type Workflow struct {
 	Vus          int             `yaml:"vus"`
 	SetupQueries []string        `yaml:"setup_queries"`
 	Queries      []WorkflowQuery `yaml:"queries"`
+	RunAfter     time.Duration   `yaml:"run_after"`
+	RunFor       time.Duration   `yaml:"run_for"`
 }
 
 type Arg struct {
