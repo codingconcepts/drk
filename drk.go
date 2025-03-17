@@ -53,6 +53,27 @@ var (
 			"workflow",
 			"query",
 		})
+
+	metricErrorDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "drk_error_duration",
+		Buckets: []float64{
+			0.001, // 1ms
+			0.005, // 5ms
+			0.01,  // 10ms
+			0.025, // 25ms
+			0.05,  // 50ms
+			0.1,   // 100ms
+			0.25,  // 250ms
+			0.5,   // 500ms
+			1.0,   // 1s
+			2.5,   // 2.5s
+			5.0,   // 5s
+		},
+	},
+		[]string{
+			"workflow",
+			"query",
+		})
 )
 
 type envs struct {
@@ -157,8 +178,18 @@ func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 			// Increment counts.
 			if event.Err != nil {
 				counts[key]++
+
+				// Add success metric.
+				metricRequestDuration.
+					With(prometheus.Labels{"workflow": event.Workflow, "query": event.Name}).
+					Observe(event.Duration.Seconds())
 			} else {
 				errors[key]++
+
+				// Add error metric.
+				metricErrorDuration.
+					With(prometheus.Labels{"workflow": event.Workflow, "query": event.Name}).
+					Observe(event.Duration.Seconds())
 			}
 
 			// Add to event latencies.
@@ -166,11 +197,6 @@ func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 				latencies[key] = ring.New[time.Duration](1000)
 			}
 			latencies[key].Add(event.Duration)
-
-			// Add metric.
-			metricRequestDuration.
-				With(prometheus.Labels{"workflow": event.Workflow, "query": event.Name}).
-				Observe(event.Duration.Seconds())
 
 		case <-printTicks:
 			if pretty {

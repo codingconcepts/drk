@@ -1,0 +1,27 @@
+workflows:
+  
+  shopper:
+    vus: 1
+    queries:
+      - name: product_search
+        rate: 1/1s
+
+activities:
+
+  product_search:
+    args:
+      - type: expr
+        value: |-
+          env("FLY_REGION") == "iad" ? "us-east-1"
+          : env("FLY_REGION") == "fra" ? "eu-central-1"
+          : env("FLY_REGION") == "sgp" ? "ap-southeast-1"
+          : "invalid"
+      - type: float
+        min: 10.0
+        max: 20.0
+    type: query
+    query: |-
+      SELECT id, name, price
+      FROM product
+      WHERE crdb_region = $1
+      AND price <= $2

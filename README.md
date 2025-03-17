@@ -216,6 +216,19 @@ The following example will provide the value for the "REGION" environment variab
   name: REGION
 ```
 
+* `expr` - These arguments make use of the popular [expr](https://github.com/expr-lang/expr) Go package and allow for more complex logic to be used when generating argument values.
+
+The following example will provide a different value, depending on the "REGION" environment variable:
+
+```yaml
+- type: expr
+  value: |-
+    env("REGION") == "iad" ? "us-east-1"
+    : env("REGION") == "fra" ? "eu-central-1"
+    : env("REGION") == "sgp" ? "ap-southeast-1"
+    : "invalid"
+```
+
 * The last family of argument generators are the range generators, which generate a value of a given type between a minimum and a maximum value.
 
 The following examples demonstrate the generators available and how to use them:

@@ -117,6 +117,11 @@ func (a *Arg) UnmarshalYAML(unmarshal func(any) error) error {
 			return fmt.Errorf("parsing env arg type: %w", err)
 		}
 
+	case "expr":
+		if a.generator, a.dependencyCheck, err = parseArgTypeExpr(raw); err != nil {
+			return fmt.Errorf("parsing expr arg type: %w", err)
+		}
+
 	default:
 		if a.generator, a.dependencyCheck, err = parseArgTypeScalar(argType, raw); err != nil {
 			return fmt.Errorf("parsing scalar arg type: %w", err)

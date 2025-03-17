@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/random"
+	"github.com/expr-lang/expr"
 	"github.com/samber/lo"
 )
 
@@ -199,6 +200,30 @@ func parseArgTypeEnv(raw map[string]any) (genFunc, dependencyFunc, error) {
 		}
 
 		return to, nil
+	}
+
+	return genFunc, dependencyFuncNoop, nil
+}
+
+func parseArgTypeExpr(raw map[string]any) (genFunc, dependencyFunc, error) {
+	value, err := parseField[string](raw, "value")
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing value: %w", err)
+	}
+
+	env := map[string]any{
+		"env": func(name string) string {
+			return os.Getenv(name)
+		},
+	}
+
+	program, err := expr.Compile(value, expr.Env(env))
+	if err != nil {
+		return nil, nil, fmt.Errorf("compiling expression: %w", err)
+	}
+
+	genFunc := func(vu *VU) (any, error) {
+		return expr.Run(program, env)
 	}
 
 	return genFunc, dependencyFuncNoop, nil

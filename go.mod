@@ -15,6 +15,7 @@ require (
 require (
 	github.com/codingconcepts/env v0.0.0-20240618133406-5b0845441187
 	github.com/codingconcepts/ring v0.0.0-20240125133104-23e758eb5030
+	github.com/expr-lang/expr v1.17.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/googleapis/go-sql-spanner v1.10.1
 	github.com/prometheus/client_golang v1.20.5

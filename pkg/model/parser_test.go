@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -864,6 +865,100 @@ func TestParseArgTypeEnv(t *testing.T) {
 
 			c.genFuncValidator(t, gen, vu)
 			c.depFuncValidator(t, dep, vu)
+		})
+	}
+}
+
+func TestParseArgTypeExpr(t *testing.T) {
+	cases := []struct {
+		name             string
+		env              map[string]string
+		raw              map[string]any
+		genFuncValidator func(t *testing.T, f genFunc)
+		depFuncValidator func(t *testing.T, f dependencyFunc)
+		expErr           error
+	}{
+		{
+			name: "valid expr no environment",
+			raw: map[string]any{
+				"value": "1 + 2",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				assert.NoError(t, err)
+
+				value := raw.(int)
+				assert.Equal(t, 3, value)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name: "valid expr with environment",
+			env: map[string]string{
+				"FLY_REGION": "iad",
+			},
+			raw: map[string]any{
+				"value": `env("FLY_REGION") == "iad" ? "us-east-1" : "invalid"`,
+				"envs":  []string{"FLY_REGION"},
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				assert.NoError(t, err)
+
+				value := raw.(string)
+				assert.Equal(t, "us-east-1", value)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
+			name: "valid expr missing environment variable",
+			raw: map[string]any{
+				"value": `env("FLY_REGION") == "iad" ? "us-east-1" : "invalid"`,
+				"envs":  []string{"FLY_REGION"},
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				assert.NoError(t, err)
+
+				value := raw.(string)
+				assert.Equal(t, "invalid", value)
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Clear the previous environment variables.
+			t.Cleanup(func() {
+				if c.env != nil {
+					for k := range c.env {
+						os.Unsetenv(k)
+					}
+				}
+			})
+
+			// Set any environment variables given.
+			if c.env != nil {
+				for k, v := range c.env {
+					os.Setenv(k, v)
+				}
+			}
+
+			gen, dep, err := parseArgTypeExpr(c.raw)
+			assert.Equal(t, c.expErr, errors.Unwrap(err))
+			if err != nil {
+				return
+			}
+
+			c.genFuncValidator(t, gen)
+			c.depFuncValidator(t, dep)
 		})
 	}
 }
