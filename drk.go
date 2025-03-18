@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/model"
+	"github.com/codingconcepts/drk/pkg/monitoring"
 	"github.com/codingconcepts/drk/pkg/repo"
 	"github.com/codingconcepts/env"
 	"github.com/codingconcepts/ring"
@@ -22,7 +23,6 @@ import (
 	_ "github.com/googleapis/go-sql-spanner"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -32,48 +32,6 @@ import (
 
 var (
 	version string
-
-	metricRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "drk_request_duration",
-		Buckets: []float64{
-			0.001, // 1ms
-			0.005, // 5ms
-			0.01,  // 10ms
-			0.025, // 25ms
-			0.05,  // 50ms
-			0.1,   // 100ms
-			0.25,  // 250ms
-			0.5,   // 500ms
-			1.0,   // 1s
-			2.5,   // 2.5s
-			5.0,   // 5s
-		},
-	},
-		[]string{
-			"workflow",
-			"query",
-		})
-
-	metricErrorDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "drk_error_duration",
-		Buckets: []float64{
-			0.001, // 1ms
-			0.005, // 5ms
-			0.01,  // 10ms
-			0.025, // 25ms
-			0.05,  // 50ms
-			0.1,   // 100ms
-			0.25,  // 250ms
-			0.5,   // 500ms
-			1.0,   // 1s
-			2.5,   // 2.5s
-			5.0,   // 5s
-		},
-	},
-		[]string{
-			"workflow",
-			"query",
-		})
 )
 
 type envs struct {
@@ -177,17 +135,21 @@ func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 
 			// Increment counts.
 			if event.Err != nil {
-				counts[key]++
+				errors[key]++
 
-				// Add success metric.
-				metricRequestDuration.
+				monitoring.MetricErrorCount.
+					With(prometheus.Labels{"workflow": event.Workflow, "query": event.Name}).Inc()
+
+				monitoring.MetricErrorDuration.
 					With(prometheus.Labels{"workflow": event.Workflow, "query": event.Name}).
 					Observe(event.Duration.Seconds())
 			} else {
-				errors[key]++
+				counts[key]++
 
-				// Add error metric.
-				metricErrorDuration.
+				monitoring.MetricRequestCount.
+					With(prometheus.Labels{"workflow": event.Workflow, "query": event.Name}).Inc()
+
+				monitoring.MetricRequestDuration.
 					With(prometheus.Labels{"workflow": event.Workflow, "query": event.Name}).
 					Observe(event.Duration.Seconds())
 			}
@@ -200,9 +162,9 @@ func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 
 		case <-printTicks:
 			if pretty {
-				printTable(errors, counts, latencies)
+				printTable(counts, errors, latencies)
 			} else {
-				printLine(errors, counts, latencies, logger)
+				printLine(counts, errors, latencies, logger)
 			}
 		}
 	}
