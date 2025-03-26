@@ -92,7 +92,11 @@ func (r *Runner) GetEventStream() <-chan Event {
 func (r *Runner) rampWorkflow(name string, workflow Workflow) error {
 	var eg errgroup.Group
 
-	stagger := workflow.RampFor / time.Duration(workflow.Vus)
+	stagger := time.Duration(0)
+	if workflow.Vus > 0 {
+		stagger = workflow.RampFor / time.Duration(workflow.Vus)
+	}
+
 	for range workflow.Vus {
 		time.Sleep(stagger)
 
@@ -155,9 +159,13 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 	var eg errgroup.Group
 
 	// Finish early if required, otherwise, run until end of test.
-	deadline := time.After(lo.CoalesceOrEmpty(workflow.RunFor, r.duration))
+	deadlineDuration := lo.CoalesceOrEmpty(workflow.RunFor, r.duration)
+	deadline := time.After(deadlineDuration)
 
-	r.logger.Debug().Str("workflow", workflowName).Msgf("preparing workflow queries")
+	r.logger.Debug().
+		Str("workflow", workflowName).
+		Dur("deadline", deadlineDuration).
+		Msgf("preparing workflow queries")
 
 	var activities int
 	for _, query := range workflow.Queries {

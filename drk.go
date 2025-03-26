@@ -5,13 +5,9 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
-	"sort"
-	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/model"
@@ -35,11 +31,12 @@ var (
 )
 
 type envs struct {
-	Config   string        `env:"CONFIG"`
-	URL      string        `env:"URL"`
-	Driver   string        `env:"DRIVER"`
-	Duration time.Duration `env:"DURATION"`
-	Retries  int           `env:"RETRIES"`
+	Config       string        `env:"CONFIG"`
+	URL          string        `env:"URL"`
+	Driver       string        `env:"DRIVER"`
+	Duration     time.Duration `env:"DURATION"`
+	Retries      int           `env:"RETRIES"`
+	QueryTimeout time.Duration `env:"QUERY_TIMEOUT"`
 }
 
 func main() {
@@ -50,12 +47,13 @@ func main() {
 	flag.StringVar(&e.Driver, "driver", "pgx", "database driver to use [mysql, spanner, pgx]")
 	flag.DurationVar(&e.Duration, "duration", time.Minute*10, "total duration of simulation")
 	flag.IntVar(&e.Retries, "retries", 1, "number of request retries")
+	flag.DurationVar(&e.QueryTimeout, "query-timeout", time.Second*5, "timeout for database queries")
 
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
 	debug := flag.Bool("debug", false, "enable verbose logging")
 	showVersion := flag.Bool("version", false, "display the application version")
-	pretty := flag.Bool("pretty", false, "print results to the terminal in a table")
-	queryTimeout := flag.Duration("query-timeout", time.Second*5, "timeout for database queries")
+	mode := flag.String("output", "log", "type of metrics output to print [log, table]")
+	clear := flag.Bool("clear", false, "clear the terminal before printing metrics")
 	flag.Parse()
 
 	// Override settings with values from the environment if provided.
@@ -80,12 +78,18 @@ func main() {
 		os.Exit(2)
 	}
 
+	if _, ok := monitoring.ValidPrintModes[*mode]; !ok {
+		log.Fatalf("invalid output type: %q (should be one of: %v)", *mode, monitoring.ValidPrintModes)
+	}
+
 	cfg, err := loadConfig(e.Config)
 	if err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
 
-	printConfig(cfg, &logger)
+	printer := monitoring.NewPrinter(monitoring.PrintMode(*mode), *clear, &logger)
+
+	printer.PrintConfig(cfg)
 
 	if *dryRun {
 		return
@@ -95,7 +99,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("connecting to database: %v", err)
 	}
-	queryer := repo.NewDBRepo(db, *queryTimeout, e.Retries)
+	queryer := repo.NewDBRepo(db, e.QueryTimeout, e.Retries)
 
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
@@ -108,8 +112,9 @@ func main() {
 		log.Fatalf("error creating runner: %v", err)
 	}
 
+	summaryC := make(chan struct{})
 	if !*debug {
-		go monitor(runner, &logger, *pretty)
+		go monitor(runner, printer, summaryC)
 	}
 
 	http.Handle("/metrics", promhttp.Handler())
@@ -118,9 +123,14 @@ func main() {
 	if err = runner.Run(); err != nil {
 		log.Fatalf("error running config: %v", err)
 	}
+
+	// Tell the monitor function to print a summary, then wait
+	// for it to finish using the same channel.
+	summaryC <- struct{}{}
+	<-summaryC
 }
 
-func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
+func monitor(r *model.Runner, printer *monitoring.Printer, summary chan struct{}) {
 	events := r.GetEventStream()
 	printTicks := time.Tick(time.Second)
 
@@ -161,97 +171,13 @@ func monitor(r *model.Runner, logger *zerolog.Logger, pretty bool) {
 			latencies[key].Add(event.Duration)
 
 		case <-printTicks:
-			if pretty {
-				printTable(counts, errors, latencies)
-			} else {
-				printLine(counts, errors, latencies, logger)
-			}
-		}
-	}
-}
+			printer.Print(counts, errors, latencies)
 
-func printTable(counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration]) {
-	fmt.Print("\033[H\033[2J")
+		case <-summary:
+			printer.Print(counts, errors, latencies)
 
-	w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
-
-	fmt.Fprintln(w, "Setup queries")
-	fmt.Fprintf(w, "=============\n\n")
-	writeEvent(w, counts, errors, latencies, func(s string, _ int) bool {
-		return strings.HasPrefix(s, "*")
-	})
-
-	fmt.Fprintf(w, "\n\n")
-
-	fmt.Fprintln(w, "Queries")
-	fmt.Fprintf(w, "=======\n\n")
-	writeEvent(w, counts, errors, latencies, func(s string, _ int) bool {
-		return !strings.HasPrefix(s, "*")
-	})
-
-	w.Flush()
-}
-
-type filter func(string, int) bool
-
-func writeEvent(w io.Writer, counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration], f filter) {
-	keys := lo.Uniq(append(lo.Keys(counts), lo.Keys(errors)...))
-	sort.Strings(keys)
-
-	fmt.Fprintln(w, "Query\tRequests\tErrors\tAverage Latency")
-	fmt.Fprintln(w, "-----\t--------\t------\t---------------")
-
-	for _, key := range lo.Filter(keys, f) {
-		latencies := latencies[key].Slice()
-		errors, hasErrors := errors[key]
-		counts, hasCount := counts[key]
-
-		fmt.Fprintf(
-			w,
-			"%s\t%d\t%d\t%s\n",
-			strings.TrimPrefix(key, "*"),
-			lo.Ternary(hasCount, counts, 0),
-			lo.Ternary(hasErrors, errors, 0),
-			lo.Sum(latencies)/time.Duration(len(latencies)),
-		)
-	}
-}
-
-func printLine(counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration], logger *zerolog.Logger) {
-	keys := lo.Uniq(append(lo.Keys(counts), lo.Keys(errors)...))
-	sort.Strings(keys)
-
-	f := func(s string, _ int) bool {
-		return !strings.HasPrefix(s, "*")
-	}
-
-	for _, key := range lo.Filter(keys, f) {
-		latencies := latencies[key].Slice()
-		errors, hasErrors := errors[key]
-		counts, hasCount := counts[key]
-
-		logger.Info().
-			Str("key", key).
-			Int("counts", lo.Ternary(hasCount, counts, 0)).
-			Int("errors", lo.Ternary(hasErrors, errors, 0)).
-			Dur("avg_latency", lo.Sum(latencies)/time.Duration(len(latencies))).
-			Msg("")
-	}
-}
-
-func printConfig(cfg *model.Drk, logger *zerolog.Logger) {
-	for name, workflow := range cfg.Workflows {
-		logger.Info().Msgf("workflow: %s...", name)
-		logger.Info().Msgf("\tvus: %d", workflow.Vus)
-
-		logger.Info().Msgf("\tsetup queries:")
-		for _, query := range workflow.SetupQueries {
-			logger.Info().Msgf("\t\t- %s", query)
-		}
-
-		logger.Info().Msgf("\tworkflow queries:")
-		for _, query := range workflow.Queries {
-			logger.Info().Msgf("\t\t- %s (%s)", query.Name, query.Rate)
+			// Allow the app to finish (the caller will be waiting on this).
+			summary <- struct{}{}
 		}
 	}
 }

@@ -32,12 +32,14 @@ tar -xvf drk_0.0.1_macos_arm64.tar.gz
 
 drk's main 4 settings (config, driver, duration, and url) can be configured with arguments or from the environment.
 
-| Setting  | Argument   | Envrironment |
-| -------- | ---------- | ------------ |
-| Config   | --config   | CONFIG       |
-| Driver   | --driver   | DRIVER       |
-| Duration | --duration | DURATION     |
-| URL      | --url      | URL          |
+| Setting       | Argument        | Envrironment  |
+| --------      | ----------      | ------------  |
+| Config        | --config        | CONFIG        |
+| Driver        | --driver        | DRIVER        |
+| Duration      | --duration      | DURATION      |
+| URL           | --url           | URL           |
+| Retries       | --retries       | RETRIES       |
+| Query Timeout | --query-timeout | QUERY_TIMEOUT |
 
 ```
 drk --help
@@ -361,6 +363,7 @@ histogram_quantile(0.99, sum by (le, workflow, query) (rate(drk_request_duration
 
 ### Todos
 
+* Calculate average latency ring size based on VU count and requests/s
 * Post-run summary
 * Global arguments
 * Array support

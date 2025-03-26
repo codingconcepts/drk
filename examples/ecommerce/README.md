@@ -18,7 +18,10 @@ cockroach sql --insecure -f examples/ecommerce/create.sql
 Run drk
 
 ```sh
-drk \
+go run drk.go \
 --config examples/ecommerce/drk.yaml \
---url "postgres://root@localhost:26257?sslmode=disable"
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--duration 1m \
+--output table \
+--clear
 ```
