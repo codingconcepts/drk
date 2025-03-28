@@ -819,9 +819,10 @@ func TestParseArgTypeEnv(t *testing.T) {
 				"FLY_REGION": "invalid",
 			},
 			genFuncValidator: func(t *testing.T, f genFunc, vu *VU) {
-				_, err := f(vu)
+				raw, err := f(vu)
+				assert.NoError(t, err)
 
-				assert.Equal(t, fmt.Errorf("missing env var mapping for: \"invalid\""), err)
+				assert.Equal(t, "invalid", raw)
 			},
 			depFuncValidator: func(t *testing.T, f dependencyFunc, vu *VU) {
 				assert.True(t, f(vu))
@@ -855,7 +856,7 @@ func TestParseArgTypeEnv(t *testing.T) {
 						"iad": "us-east-1",
 					},
 				},
-			}, nil, "", "", 0, &zerolog.Logger{})
+			}, nil, EnvironmentVariables{}, &zerolog.Logger{})
 
 			if err != nil {
 				t.Fatalf("error creating runner: %v", err)

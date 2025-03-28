@@ -9,6 +9,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// EnvironmentVariables are set by the caller and change how drk behaves.
+type EnvironmentVariables struct {
+	Config            string        `env:"CONFIG,required"`
+	URL               string        `env:"URL,required"`
+	Driver            string        `env:"DRIVER"`
+	Duration          time.Duration `env:"DURATION"`
+	Retries           int           `env:"RETRIES"`
+	QueryTimeout      time.Duration `env:"QUERY_TIMEOUT"`
+	Debug             bool          `env:"DEBUG"`
+	AverageWindowSize int           `env:"AVERAGE_WINDOW_SIZE"`
+}
+
 type genFunc func(*VU) (any, error)
 
 type dependencyFunc func(*VU) bool
@@ -16,6 +28,7 @@ type dependencyFunc func(*VU) bool
 func dependencyFuncNoop(*VU) bool { return true }
 
 type Drk struct {
+	GlobalArgs  map[string]Arg        `yaml:"args"`
 	EnvMappings map[string]EnvMapping `yaml:"arg_mappings"`
 	Workflows   map[string]Workflow   `yaml:"workflows"`
 	Activities  map[string]Query      `yaml:"activities"`
@@ -119,6 +132,11 @@ func (a *Arg) UnmarshalYAML(unmarshal func(any) error) error {
 
 	case "expr":
 		if a.generator, a.dependencyCheck, err = parseArgTypeExpr(raw); err != nil {
+			return fmt.Errorf("parsing expr arg type: %w", err)
+		}
+
+	case "global":
+		if a.generator, a.dependencyCheck, err = parseArgTypeGlobal(raw); err != nil {
 			return fmt.Errorf("parsing expr arg type: %w", err)
 		}
 

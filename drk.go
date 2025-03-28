@@ -30,17 +30,8 @@ var (
 	version string
 )
 
-type envs struct {
-	Config       string        `env:"CONFIG"`
-	URL          string        `env:"URL"`
-	Driver       string        `env:"DRIVER"`
-	Duration     time.Duration `env:"DURATION"`
-	Retries      int           `env:"RETRIES"`
-	QueryTimeout time.Duration `env:"QUERY_TIMEOUT"`
-}
-
 func main() {
-	var e envs
+	var e model.EnvironmentVariables
 
 	flag.StringVar(&e.Config, "config", "drk.yaml", "absolute or relative path to config file")
 	flag.StringVar(&e.URL, "url", "", "database connection string")
@@ -48,9 +39,10 @@ func main() {
 	flag.DurationVar(&e.Duration, "duration", time.Minute*10, "total duration of simulation")
 	flag.IntVar(&e.Retries, "retries", 1, "number of request retries")
 	flag.DurationVar(&e.QueryTimeout, "query-timeout", time.Second*5, "timeout for database queries")
+	flag.BoolVar(&e.Debug, "debug", false, "show debugging logs")
+	flag.IntVar(&e.AverageWindowSize, "average-window-size", 1000, "number of request to derive an average latency for")
 
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
-	debug := flag.Bool("debug", false, "enable verbose logging")
 	showVersion := flag.Bool("version", false, "display the application version")
 	mode := flag.String("output", "log", "type of metrics output to print [log, table]")
 	clear := flag.Bool("clear", false, "clear the terminal before printing metrics")
@@ -66,7 +58,7 @@ func main() {
 		PartsExclude: []string{
 			zerolog.TimestampFieldName,
 		},
-	}).Level(lo.Ternary(*debug, zerolog.DebugLevel, zerolog.InfoLevel))
+	}).Level(lo.Ternary(e.Debug, zerolog.DebugLevel, zerolog.InfoLevel))
 
 	if *showVersion {
 		logger.Info().Str("version", version).Msg("application info")
@@ -107,15 +99,13 @@ func main() {
 		log.Fatalf("error connecting to database: %v", err)
 	}
 
-	runner, err := model.NewRunner(cfg, queryer, e.URL, e.Driver, e.Duration, &logger)
+	runner, err := model.NewRunner(cfg, queryer, e, &logger)
 	if err != nil {
 		log.Fatalf("error creating runner: %v", err)
 	}
 
 	summaryC := make(chan struct{})
-	if !*debug {
-		go monitor(runner, printer, summaryC)
-	}
+	go monitor(runner, e, printer, summaryC)
 
 	http.Handle("/metrics", promhttp.Handler())
 	go http.ListenAndServe(":2112", nil)
@@ -130,7 +120,7 @@ func main() {
 	<-summaryC
 }
 
-func monitor(r *model.Runner, printer *monitoring.Printer, summary chan struct{}) {
+func monitor(r *model.Runner, e model.EnvironmentVariables, printer *monitoring.Printer, summary chan struct{}) {
 	events := r.GetEventStream()
 	printTicks := time.Tick(time.Second)
 
@@ -166,7 +156,7 @@ func monitor(r *model.Runner, printer *monitoring.Printer, summary chan struct{}
 
 			// Add to event latencies.
 			if _, ok := latencies[key]; !ok {
-				latencies[key] = ring.New[time.Duration](1000)
+				latencies[key] = ring.New[time.Duration](e.AverageWindowSize)
 			}
 			latencies[key].Add(event.Duration)
 

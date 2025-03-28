@@ -195,11 +195,11 @@ func parseArgTypeEnv(raw map[string]any) (genFunc, dependencyFunc, error) {
 
 	genFunc := func(vu *VU) (any, error) {
 		to, ok := vu.envMapper(envVarName, value)
-		if !ok {
-			return nil, fmt.Errorf("missing env var mapping for: %q", value)
+		if ok {
+			return to, nil
 		}
 
-		return to, nil
+		return value, nil
 	}
 
 	return genFunc, dependencyFuncNoop, nil
@@ -224,6 +224,24 @@ func parseArgTypeExpr(raw map[string]any) (genFunc, dependencyFunc, error) {
 
 	genFunc := func(vu *VU) (any, error) {
 		return expr.Run(program, env)
+	}
+
+	return genFunc, dependencyFuncNoop, nil
+}
+
+func parseArgTypeGlobal(raw map[string]any) (genFunc, dependencyFunc, error) {
+	argName, err := parseField[string](raw, "name")
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing env var name: %w", err)
+	}
+
+	genFunc := func(vu *VU) (any, error) {
+		to, ok := vu.r.globalArgs.get(argName)
+		if !ok {
+			return nil, fmt.Errorf("missing global arg: %q", argName)
+		}
+
+		return to, nil
 	}
 
 	return genFunc, dependencyFuncNoop, nil

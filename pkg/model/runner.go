@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/repo"
@@ -21,22 +22,47 @@ type Runner struct {
 	envMappings envMappingGenerator
 	duration    time.Duration
 	events      chan Event
+	globalArgs  globalArgs
 	logger      *zerolog.Logger
 }
 
-func NewRunner(cfg *Drk, db repo.Queryer, url, driver string, duration time.Duration, logger *zerolog.Logger) (*Runner, error) {
+func NewRunner(cfg *Drk, db repo.Queryer, e EnvironmentVariables, logger *zerolog.Logger) (*Runner, error) {
 	r := Runner{
 		db:          db,
 		cfg:         cfg,
 		envMappings: createEnvMappingGenerator(cfg),
-		duration:    duration,
+		duration:    e.Duration,
 		events:      make(chan Event, 1000),
 		logger:      logger,
 	}
 
-	logger.Info().Float64("duration", r.duration.Seconds()).Msgf("runner")
+	vu := NewVU(&r)
+
+	if cfg != nil {
+		args, err := vu.generateNamedArgs(cfg.GlobalArgs)
+		if err != nil {
+			return nil, fmt.Errorf("generating global args: %w", err)
+		}
+
+		r.globalArgs = globalArgs{
+			m: args,
+		}
+	}
 
 	return &r, nil
+}
+
+type globalArgs struct {
+	m  map[string]any
+	mu sync.RWMutex
+}
+
+func (ga *globalArgs) get(name string) (any, bool) {
+	ga.mu.RLock()
+	defer ga.mu.RUnlock()
+
+	val, ok := ga.m[name]
+	return val, ok
 }
 
 func createEnvMappingGenerator(cfg *Drk) func(env, value string) (string, bool) {

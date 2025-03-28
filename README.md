@@ -32,31 +32,37 @@ tar -xvf drk_0.0.1_macos_arm64.tar.gz
 
 drk's main 4 settings (config, driver, duration, and url) can be configured with arguments or from the environment.
 
-| Setting       | Argument        | Envrironment  |
-| --------      | ----------      | ------------  |
-| Config        | --config        | CONFIG        |
-| Driver        | --driver        | DRIVER        |
-| Duration      | --duration      | DURATION      |
-| URL           | --url           | URL           |
-| Retries       | --retries       | RETRIES       |
-| Query Timeout | --query-timeout | QUERY_TIMEOUT |
+| Setting             | Argument              | Envrironment        | Description                        |
+| --------            | ----------            | ------------        | -----------                        |
+| Config              | --config              | CONFIG              | Path to config file                |
+| Driver              | --driver              | DRIVER              | Type of database driver to use     |
+| Duration            | --duration            | DURATION            | Duration of test                   |
+| URL                 | --url                 | URL                 | Database URL                       |
+| Retries             | --retries             | RETRIES             | Retries per request                |
+| Query Timeout       | --query-timeout       | QUERY_TIMEOUT       | Request timeout                    |
+| Debug               | --debug               | DEBUG               | Toggle debug-level logging         |
+| Average Window Size | --average-window-size | AVERAGE_WINDOW_SIZE | Change latency average window size |
 
 ```
 drk --help
 
 Usage of drk:
+  -average-window-size int
+        number of request to derive an average latency for (default 1000)
+  -clear
+        clear the terminal before printing metrics
   -config string
         absolute or relative path to config file (default "drk.yaml")
   -debug
-        enable verbose logging
+        show debugging logs
   -driver string
         database driver to use [mysql, spanner, pgx] (default "pgx")
   -dry-run
         if specified, prints config and exits
   -duration duration
         total duration of simulation (default 10m0s)
-  -pretty
-        print results to the terminal in a table
+  -output string
+        type of metrics output to print [log, table] (default "log")
   -query-timeout duration
         timeout for database queries (default 5s)
   -retries int
@@ -154,6 +160,27 @@ activities:
       INSERT INTO shopper (email)
       VALUES ($1)
       RETURNING id
+```
+
+##### Global Args
+
+At the top-level of a drk config file, you can optionally express global arguments that are parsed once during initialization and can be reused throughout the test run as "global" types:
+
+```yaml
+args:
+  region:
+    type: env
+    name: REGION
+
+# workflows omitted for brevity
+
+activities:
+
+  show_args:
+    args:
+      - type: global
+        name: region
+    ...
 ```
 
 ##### Args

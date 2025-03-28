@@ -1,0 +1,41 @@
+args:
+  random_uuid:
+    type: gen
+    value: uuid
+  const_int:
+    type: int
+    min: 1
+    max: 10
+  expr:
+    type: expr
+    value: |-
+      env("FLY_REGION") == "iad" ? "us-east-1"
+        : env("FLY_REGION") == "fra" ? "eu-central-1"
+        : env("FLY_REGION") == "sgp" ? "ap-southeast-1"
+        : "invalid"
+  env:
+    type: env
+    name: FLY_REGION
+
+workflows:
+  
+  arg_vu:
+    vus: 1
+    queries:
+      - name: show_args
+        rate: 1/1s
+
+activities:
+
+  show_args:
+    args:
+      - type: global
+        name: random_uuid
+      - type: global
+        name: const_int
+      - type: global
+        name: expr
+      - type: global
+        name: env
+    type: query
+    query: SELECT $1, $2

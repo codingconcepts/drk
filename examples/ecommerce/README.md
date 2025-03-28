@@ -23,5 +23,6 @@ go run drk.go \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --duration 1m \
 --output table \
---clear
+--clear \
+--average-window-size 1000
 ```

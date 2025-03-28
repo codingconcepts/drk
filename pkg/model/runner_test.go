@@ -96,7 +96,7 @@ func TestRunQuery(t *testing.T) {
 				exec:  c.execImpl,
 			}
 
-			r, err := NewRunner(nil, &queryer, "", "", 0, &zerolog.Logger{})
+			r, err := NewRunner(nil, &queryer, EnvironmentVariables{}, &zerolog.Logger{})
 			assert.NoError(t, err)
 
 			vu := NewVU(r)

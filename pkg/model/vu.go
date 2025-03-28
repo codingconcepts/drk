@@ -10,6 +10,9 @@ import (
 )
 
 type VU struct {
+	// Link to runner for global arg fetching.
+	r *Runner
+
 	// Map of query names to columns to rows.
 	dataMu sync.RWMutex
 	data   map[string][]map[string]any
@@ -21,6 +24,7 @@ type VU struct {
 
 func NewVU(r *Runner) *VU {
 	return &VU{
+		r:         r,
 		data:      map[string][]map[string]any{},
 		envMapper: r.envMappings,
 		logger:    r.logger,
@@ -54,6 +58,21 @@ func (vu *VU) generateArgs(args []Arg) ([]any, error) {
 		}
 
 		values = append(values, v)
+	}
+
+	return values, nil
+}
+
+func (vu *VU) generateNamedArgs(args map[string]Arg) (map[string]any, error) {
+	values := map[string]any{}
+
+	for name, arg := range args {
+		v, err := arg.generator(vu)
+		if err != nil {
+			return nil, fmt.Errorf("generating value for arg: %w", err)
+		}
+
+		values[name] = v
 	}
 
 	return values, nil
