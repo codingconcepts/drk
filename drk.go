@@ -40,7 +40,9 @@ func main() {
 	flag.IntVar(&e.Retries, "retries", 1, "number of request retries")
 	flag.DurationVar(&e.QueryTimeout, "query-timeout", time.Second*5, "timeout for database queries")
 	flag.BoolVar(&e.Debug, "debug", false, "show debugging logs")
+	flag.BoolVar(&e.Sensitive, "sensitive", false, "show sensitive logs")
 	flag.IntVar(&e.AverageWindowSize, "average-window-size", 1000, "number of request to derive an average latency for")
+	flag.BoolVar(&e.NoColor, "no-color", false, "print logs without color")
 
 	dryRun := flag.Bool("dry-run", false, "if specified, prints config and exits")
 	showVersion := flag.Bool("version", false, "display the application version")
@@ -58,11 +60,20 @@ func main() {
 		PartsExclude: []string{
 			zerolog.TimestampFieldName,
 		},
+		NoColor: e.NoColor,
 	}).Level(lo.Ternary(e.Debug, zerolog.DebugLevel, zerolog.InfoLevel))
 
 	if *showVersion {
 		logger.Info().Str("version", version).Msg("application info")
 		return
+	}
+
+	if e.Sensitive {
+		logger.Info().Any("env args", e).Msg("sensitive")
+
+		for _, env := range os.Environ() {
+			logger.Info().Str("env", env).Msg("sensitive")
+		}
 	}
 
 	if e.URL == "" || e.Driver == "" || e.Config == "" {
@@ -91,6 +102,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("connecting to database: %v", err)
 	}
+	logger.Debug().Msg("db connection established")
+
 	queryer := repo.NewDBRepo(db, e.QueryTimeout, e.Retries)
 
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -98,6 +111,7 @@ func main() {
 	if err = db.PingContext(timeout); err != nil {
 		log.Fatalf("error connecting to database: %v", err)
 	}
+	logger.Debug().Msg("db connection tested")
 
 	runner, err := model.NewRunner(cfg, queryer, e, &logger)
 	if err != nil {

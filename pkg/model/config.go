@@ -11,14 +11,16 @@ import (
 
 // EnvironmentVariables are set by the caller and change how drk behaves.
 type EnvironmentVariables struct {
-	Config            string        `env:"CONFIG,required"`
-	URL               string        `env:"URL,required"`
+	Config            string        `env:"CONFIG"`
+	URL               string        `env:"URL"`
 	Driver            string        `env:"DRIVER"`
 	Duration          time.Duration `env:"DURATION"`
 	Retries           int           `env:"RETRIES"`
 	QueryTimeout      time.Duration `env:"QUERY_TIMEOUT"`
 	Debug             bool          `env:"DEBUG"`
+	Sensitive         bool          `env:"SENSITIVE"`
 	AverageWindowSize int           `env:"AVERAGE_WINDOW_SIZE"`
+	NoColor           bool          `env:"NO_COLOR"`
 }
 
 type genFunc func(*VU) (any, error)
