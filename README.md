@@ -32,17 +32,19 @@ tar -xvf drk_0.0.1_macos_arm64.tar.gz
 
 drk's main 4 settings (config, driver, duration, and url) can be configured with arguments or from the environment.
 
-| Setting             | Argument              | Envrironment        | Description                        |
-| --------            | ----------            | ------------        | -----------                        |
-| Config              | --config              | CONFIG              | Path to config file                |
-| Driver              | --driver              | DRIVER              | Type of database driver to use     |
-| Duration            | --duration            | DURATION            | Duration of test                   |
-| URL                 | --url                 | URL                 | Database URL                       |
-| Retries             | --retries             | RETRIES             | Retries per request                |
-| Query Timeout       | --query-timeout       | QUERY_TIMEOUT       | Request timeout                    |
-| Debug               | --debug               | DEBUG               | Toggle debug-level logging         |
-| Average Window Size | --average-window-size | AVERAGE_WINDOW_SIZE | Change latency average window size |
-
+| Setting             | Argument              | Envrironment        | Description                         |
+| --------            | ----------            | ------------        | -----------                         |
+| Config              | --config              | CONFIG              | Path to config file                 |
+| URL                 | --url                 | URL                 | Database URL                        |
+| Driver              | --driver              | DRIVER              | Type of database driver to use      |
+| Duration            | --duration            | DURATION            | Duration of test                    |
+| Retries             | --retries             | RETRIES             | Retries per request                 |
+| Query Timeout       | --query-timeout       | QUERY_TIMEOUT       | Request timeout                     |
+| Debug               | --debug               | DEBUG               | Toggle debug-level logging          |
+| Sensitive           | --sensitive           | SENSITIVE           | Toggle sensitive env var logging    |
+| Average Window Size | --average-window-size | AVERAGE_WINDOW_SIZE | Change latency average window size  |
+| NoColor             | --no-color            | NO_COLOR            | Remove console color formatting     |
+| Connection Lifetime | --connection-lifetime | CONNECTION_LIFETIME | Duration a connection can be reused |
 ```
 drk --help
 
@@ -53,6 +55,8 @@ Usage of drk:
         clear the terminal before printing metrics
   -config string
         absolute or relative path to config file (default "drk.yaml")
+  -connection-lifetime duration
+        amount of time a connection can be reused (default 1m0s)
   -debug
         show debugging logs
   -driver string
@@ -61,12 +65,16 @@ Usage of drk:
         if specified, prints config and exits
   -duration duration
         total duration of simulation (default 10m0s)
+  -no-color
+        print logs without color
   -output string
         type of metrics output to print [log, table] (default "log")
   -query-timeout duration
         timeout for database queries (default 5s)
   -retries int
         number of request retries (default 1)
+  -sensitive
+        show sensitive logs
   -url string
         database connection string
   -version

@@ -37,6 +37,7 @@ func main() {
 	flag.StringVar(&e.URL, "url", "", "database connection string")
 	flag.StringVar(&e.Driver, "driver", "pgx", "database driver to use [mysql, spanner, pgx]")
 	flag.DurationVar(&e.Duration, "duration", time.Minute*10, "total duration of simulation")
+	flag.DurationVar(&e.ConnectionLifetime, "connection-lifetime", time.Minute*1, "amount of time a connection can be reused")
 	flag.IntVar(&e.Retries, "retries", 1, "number of request retries")
 	flag.DurationVar(&e.QueryTimeout, "query-timeout", time.Second*5, "timeout for database queries")
 	flag.BoolVar(&e.Debug, "debug", false, "show debugging logs")
@@ -102,6 +103,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("connecting to database: %v", err)
 	}
+
+	db.SetConnMaxLifetime(e.ConnectionLifetime)
 	logger.Debug().Msg("db connection established")
 
 	queryer := repo.NewDBRepo(db, e.QueryTimeout, e.Retries)
