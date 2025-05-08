@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"text/tabwriter"
 	"time"
 
@@ -33,14 +34,24 @@ type Printer struct {
 	logger *zerolog.Logger
 	mode   PrintMode
 	clear  bool
+
+	vusRunning uint64
 }
 
-func NewPrinter(mode PrintMode, clear bool, logger *zerolog.Logger) *Printer {
-	return &Printer{
+func NewPrinter(mode PrintMode, clear bool, vuStarted chan struct{}, logger *zerolog.Logger) *Printer {
+	p := Printer{
 		logger: logger,
 		mode:   mode,
 		clear:  clear,
 	}
+
+	go func() {
+		for range vuStarted {
+			atomic.AddUint64(&p.vusRunning, 1)
+		}
+	}()
+
+	return &p
 }
 
 func (p *Printer) Print(counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration]) {
@@ -60,6 +71,12 @@ func (p *Printer) Print(counts, errors map[string]int, latencies map[string]*rin
 // PrintTable clears the terminal and prints a summary of requests.
 func (p *Printer) PrintTable(counts, errors map[string]int, latencies map[string]*ring.Ring[time.Duration]) {
 	w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
+
+	fmt.Fprintln(w, "VUs Running")
+	fmt.Fprintf(w, "===========\n\n")
+	fmt.Fprintln(w, atomic.LoadUint64(&p.vusRunning))
+
+	fmt.Fprintf(w, "\n\n")
 
 	fmt.Fprintln(w, "Setup queries")
 	fmt.Fprintf(w, "=============\n\n")
@@ -93,6 +110,7 @@ func (p *Printer) PrintLine(counts, errors map[string]int, latencies map[string]
 		counts := counts[key]
 
 		p.logger.Info().
+			Uint64("vus", atomic.LoadUint64(&p.vusRunning)).
 			Str("key", key).
 			Int("counts", counts).
 			Int("errors", errors).

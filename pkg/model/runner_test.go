@@ -96,7 +96,9 @@ func TestRunQuery(t *testing.T) {
 				exec:  c.execImpl,
 			}
 
-			r, err := NewRunner(nil, &queryer, EnvironmentVariables{}, &zerolog.Logger{})
+			noopChan := make(chan struct{}, 1)
+
+			r, err := NewRunner(nil, &queryer, EnvironmentVariables{}, noopChan, &zerolog.Logger{})
 			assert.NoError(t, err)
 
 			vu := NewVU(r)

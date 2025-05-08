@@ -850,13 +850,15 @@ func TestParseArgTypeEnv(t *testing.T) {
 				return
 			}
 
+			noopChan := make(chan struct{}, 1)
+
 			r, err := NewRunner(&Drk{
 				EnvMappings: map[string]EnvMapping{
 					"FLY_REGION": {
 						"iad": "us-east-1",
 					},
 				},
-			}, nil, EnvironmentVariables{}, &zerolog.Logger{})
+			}, nil, EnvironmentVariables{}, noopChan, &zerolog.Logger{})
 
 			if err != nil {
 				t.Fatalf("error creating runner: %v", err)

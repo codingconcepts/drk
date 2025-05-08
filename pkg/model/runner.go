@@ -22,17 +22,19 @@ type Runner struct {
 	envMappings envMappingGenerator
 	duration    time.Duration
 	events      chan Event
+	vuStarted   chan struct{}
 	globalArgs  globalArgs
 	logger      *zerolog.Logger
 }
 
-func NewRunner(cfg *Drk, db repo.Queryer, e EnvironmentVariables, logger *zerolog.Logger) (*Runner, error) {
+func NewRunner(cfg *Drk, db repo.Queryer, e EnvironmentVariables, vuCounts chan struct{}, logger *zerolog.Logger) (*Runner, error) {
 	r := Runner{
 		db:          db,
 		cfg:         cfg,
 		envMappings: createEnvMappingGenerator(cfg),
 		duration:    e.Duration,
 		events:      make(chan Event, 1000),
+		vuStarted:   vuCounts,
 		logger:      logger,
 	}
 
@@ -191,7 +193,7 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 	r.logger.Debug().
 		Str("workflow", workflowName).
 		Dur("deadline", deadlineDuration).
-		Msgf("preparing workflow queries")
+		Msg("preparing workflow queries")
 
 	var activities int
 	for _, query := range workflow.Queries {
@@ -206,6 +208,9 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 			return r.runActivity(vu, workflowName, query.Name, act, query.Rate, deadline)
 		})
 	}
+
+	// Notify VU has started.
+	r.vuStarted <- struct{}{}
 
 	r.logger.Debug().
 		Str("workflow", workflowName).

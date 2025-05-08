@@ -37,6 +37,19 @@ type Drk struct {
 	Activities  map[string]Query      `yaml:"activities"`
 }
 
+// MaxVUsRequired returns number of VUs required by the busiest workload.
+func (d *Drk) MaxVUsRequired() int {
+	var max int
+
+	for _, v := range d.Workflows {
+		if max < v.Vus {
+			max = v.Vus
+		}
+	}
+
+	return max
+}
+
 type EnvMapping map[string]string
 
 type envMappingGenerator func(env, value string) (string, bool)

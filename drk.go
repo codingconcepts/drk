@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/model"
@@ -91,8 +92,8 @@ func main() {
 		log.Fatalf("error loading config: %v", err)
 	}
 
-	printer := monitoring.NewPrinter(monitoring.PrintMode(*mode), *clear, &logger)
-
+	vuStarted := make(chan struct{}, 10)
+	printer := monitoring.NewPrinter(monitoring.PrintMode(*mode), *clear, vuStarted, &logger)
 	printer.PrintConfig(cfg)
 
 	if *dryRun {
@@ -104,7 +105,11 @@ func main() {
 		log.Fatalf("connecting to database: %v", err)
 	}
 
+	maxConnections := max(cfg.MaxVUsRequired()/50, runtime.NumCPU()*4)
+	db.SetMaxOpenConns(maxConnections)
+	db.SetMaxIdleConns(maxConnections)
 	db.SetConnMaxLifetime(e.ConnectionLifetime)
+	db.SetConnMaxIdleTime(e.ConnectionLifetime)
 	logger.Debug().Msg("db connection established")
 
 	queryer := repo.NewDBRepo(db, e.QueryTimeout, e.Retries)
@@ -116,7 +121,7 @@ func main() {
 	}
 	logger.Debug().Msg("db connection tested")
 
-	runner, err := model.NewRunner(cfg, queryer, e, &logger)
+	runner, err := model.NewRunner(cfg, queryer, e, vuStarted, &logger)
 	if err != nil {
 		log.Fatalf("error creating runner: %v", err)
 	}
