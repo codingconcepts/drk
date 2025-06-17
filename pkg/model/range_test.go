@@ -175,3 +175,41 @@ func TestInterval(t *testing.T) {
 		})
 	}
 }
+
+func TestLocation(t *testing.T) {
+	cases := []struct {
+		name     string
+		lat      float64
+		lon      float64
+		radiusKM float64
+		expFunc  func(t *testing.T, lat, lon float64)
+	}{
+		{
+			name:     "zero radius",
+			lat:      51.538970,
+			lon:      -0.141689,
+			radiusKM: 0,
+			expFunc: func(t *testing.T, lat, lon float64) {
+				assert.Equal(t, 51.538970, lat)
+				assert.Equal(t, -0.141689, lon)
+			},
+		},
+		{
+			name:     "non-zero radius",
+			lat:      51.538970,
+			lon:      -0.141689,
+			radiusKM: 100,
+			expFunc: func(t *testing.T, lat, lon float64) {
+				test.NumberBetween(t, lat, 50.640970, 52.436970)
+				test.NumberBetween(t, lon, -1.585689, 1.302311)
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			lat, lon := Point(c.lat, c.lon, c.radiusKM)
+			c.expFunc(t, lat, lon)
+		})
+	}
+}

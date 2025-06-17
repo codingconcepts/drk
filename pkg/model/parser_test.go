@@ -332,6 +332,25 @@ func TestParseArgTypeScalar(t *testing.T) {
 			},
 		},
 		{
+			name:    "valid timestamp generator - date format",
+			argType: "timestamp",
+			raw: map[string]any{
+				"min": "2024-11-12",
+				"max": "2024-11-12",
+				"fmt": "2006-01-02",
+			},
+			genFuncValidator: func(t *testing.T, f genFunc) {
+				raw, err := f(nil)
+				assert.NoError(t, err)
+
+				exp := time.Date(2024, 11, 12, 0, 0, 0, 0, time.UTC)
+				assert.Equal(t, exp, raw.(time.Time))
+			},
+			depFuncValidator: func(t *testing.T, f dependencyFunc) {
+				assert.True(t, f(nil))
+			},
+		},
+		{
 			name:    "missing min",
 			argType: "interval",
 			raw: map[string]any{

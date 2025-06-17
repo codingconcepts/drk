@@ -1,0 +1,29 @@
+workflows:
+
+  shopper_signups:
+    vus: 1
+    queries:
+      - name: register_shopper
+        rate: 10/1s
+
+activities:
+
+  register_shopper:
+    type: exec
+    args:
+      - type: gen
+        value: email
+      - type: set
+        values: [male, female, trans-male, trans-female, non-binary]
+        weights: [32, 52, 2, 4, 10]
+      - type: timestamp
+        min: "1950-01-01"
+        max: "2005-01-01"
+        fmt: "2006-01-02"
+      - type: point
+        lat: 51.538970
+        lon: -0.141689
+        distance_km: 100.0
+    query: |-
+      INSERT INTO shopper (email, gender, date_of_birth, location)
+      VALUES ($1, $2, $3, $4)

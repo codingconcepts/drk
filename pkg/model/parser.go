@@ -52,12 +52,22 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 				return nil, err
 			}
 
-			min, err := time.Parse(time.RFC3339, minStr)
+			// Parse any optional time formats but fallback to RFC3339.
+			format, err := parseField[string](raw, "fmt")
+			if err != nil {
+				if _, ok := err.(FieldMissingErr); ok {
+					format = time.RFC3339
+				} else {
+					return nil, err
+				}
+			}
+
+			min, err := time.Parse(format, minStr)
 			if err != nil {
 				return nil, fmt.Errorf("parsing max as timestamp: %w", err)
 			}
 
-			max, err := time.Parse(time.RFC3339, maxStr)
+			max, err := time.Parse(format, maxStr)
 			if err != nil {
 				return nil, fmt.Errorf("parsing max as timestamp: %w", err)
 			}
@@ -81,6 +91,25 @@ func parseArgTypeScalar(argType string, raw map[string]any) (genFunc, dependency
 			}
 
 			return Interval(min, max), nil
+
+		case "location", "point":
+			lat, err := parseField[float64](raw, "lat")
+			if err != nil {
+				return nil, err
+			}
+
+			lon, err := parseField[float64](raw, "lon")
+			if err != nil {
+				return nil, err
+			}
+
+			distanceKM, err := parseField[float64](raw, "distance_km")
+			if err != nil {
+				return nil, err
+			}
+
+			randomLat, randomLon := Point(lat, lon, distanceKM)
+			return LatLon{Lat: randomLat, Lon: randomLon}, nil
 
 		default:
 			return nil, fmt.Errorf("invalid scalar generator: %q", argType)

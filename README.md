@@ -282,6 +282,7 @@ The following examples demonstrate the generators available and how to use them:
 - type: timestamp
   min: 2024-01-01
   max: 2024-12-31
+  fmt: 2006-01-02
 
 - type: timestamp
   min: 2024-01-01T00:00:00
@@ -294,6 +295,14 @@ The following examples demonstrate the generators available and how to use them:
 - type: duration
   min: 1m
   max: 10m
+
+- type: location
+  lat: 51.538970
+  lon: -0.141689
+
+- type: point
+  lat: 51.538970
+  lon: -0.141689
 ```
 
 ### Running the binary
