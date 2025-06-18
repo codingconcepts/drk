@@ -299,10 +299,12 @@ The following examples demonstrate the generators available and how to use them:
 - type: location
   lat: 51.538970
   lon: -0.141689
+  distance_km: 100.0
 
 - type: point
   lat: 51.538970
   lon: -0.141689
+  distance_km: 100.0
 ```
 
 ### Running the binary
