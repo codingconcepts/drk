@@ -420,3 +420,4 @@ histogram_quantile(0.99, sum by (le, workflow, query) (rate(drk_request_duration
 * Update ref to allow more than one item to be seleted (e.g. add multiple products to a basket)
 * Optionally pass args in workflow queries
 * Ability to ramp VU's down
+* Default query type to "query"
