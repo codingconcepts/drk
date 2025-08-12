@@ -24,6 +24,7 @@ type Runner struct {
 	events      chan Event
 	vuStarted   chan struct{}
 	globalArgs  globalArgs
+	verbose     bool
 	logger      *zerolog.Logger
 }
 
@@ -35,6 +36,7 @@ func NewRunner(cfg *Drk, db repo.Queryer, e EnvironmentVariables, vuCounts chan 
 		duration:    e.Duration,
 		events:      make(chan Event, 1000),
 		vuStarted:   vuCounts,
+		verbose:     e.Verbose,
 		logger:      logger,
 	}
 
@@ -168,9 +170,11 @@ func (r *Runner) runVU(workflowName string, workflow Workflow) error {
 
 		data, taken, err := r.runQuery(vu, act)
 		if err != nil {
-			r.logger.Warn().Str("query", query).Any("error", err.Error()).Msg("running query")
-			r.events <- Event{Workflow: workflowName, Name: query, Duration: taken, Err: err}
+			if r.verbose {
+				r.logger.Warn().Str("query", query).Any("error", err.Error()).Msg("running query")
+			}
 
+			r.events <- Event{Workflow: workflowName, Name: query, Duration: taken, Err: err}
 			return fmt.Errorf("running query %q: %w", query, err)
 		}
 
@@ -236,7 +240,10 @@ func (r *Runner) runActivity(vu *VU, workflowName, queryName string, query Query
 
 			data, taken, err := r.runQuery(vu, query)
 			if err != nil {
-				r.logger.Warn().Str("workflow", workflowName).Str("query", queryName).Err(err).Msg("")
+				if r.verbose {
+					r.logger.Warn().Str("workflow", workflowName).Str("query", queryName).Err(err).Msg("")
+				}
+
 				r.events <- Event{Workflow: workflowName, Name: queryName, Duration: taken, Err: err}
 				continue
 			}

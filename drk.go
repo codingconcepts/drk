@@ -42,6 +42,7 @@ func main() {
 	flag.IntVar(&e.Retries, "retries", 1, "number of request retries")
 	flag.DurationVar(&e.QueryTimeout, "query-timeout", time.Second*5, "timeout for database queries")
 	flag.BoolVar(&e.Debug, "debug", false, "show debugging logs")
+	flag.BoolVar(&e.Verbose, "verbose", false, "print each generated error as it's encountered")
 	flag.BoolVar(&e.Sensitive, "sensitive", false, "show sensitive logs")
 	flag.IntVar(&e.AverageWindowSize, "average-window-size", 1000, "number of request to derive an average latency for")
 	flag.BoolVar(&e.NoColor, "no-color", false, "print logs without color")
