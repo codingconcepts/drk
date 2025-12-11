@@ -11,6 +11,7 @@ import (
 
 // EnvironmentVariables are set by the caller and change how drk behaves.
 type EnvironmentVariables struct {
+	RawConfig          string        `env:"RAW_CONFIG"`
 	Config             string        `env:"CONFIG"`
 	URL                string        `env:"URL"`
 	Driver             string        `env:"DRIVER"`
@@ -18,7 +19,7 @@ type EnvironmentVariables struct {
 	Retries            int           `env:"RETRIES"`
 	QueryTimeout       time.Duration `env:"QUERY_TIMEOUT"`
 	Debug              bool          `env:"DEBUG"`
-	Verbose            bool          `env:"NO_ERRORS"`
+	Errors             bool          `env:"NO_ERRORS"`
 	Sensitive          bool          `env:"SENSITIVE"`
 	AverageWindowSize  int           `env:"AVERAGE_WINDOW_SIZE"`
 	NoColor            bool          `env:"NO_COLOR"`

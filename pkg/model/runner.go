@@ -36,7 +36,7 @@ func NewRunner(cfg *Drk, db repo.Queryer, e EnvironmentVariables, vuCounts chan 
 		duration:    e.Duration,
 		events:      make(chan Event, 1000),
 		vuStarted:   vuCounts,
-		verbose:     e.Verbose,
+		verbose:     e.Errors,
 		logger:      logger,
 	}
 

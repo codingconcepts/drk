@@ -1,0 +1,19 @@
+workflows:
+
+  device:
+    vus: 10
+    queries:
+      - name: record_measurement
+        rate: 10/1s
+
+activities:
+
+  record_measurement:
+    type: exec
+    args:
+      - type: float
+        min: 1.0
+        max: 10.0
+    query: |-
+      INSERT INTO measurement (value)
+      VALUES ($1)

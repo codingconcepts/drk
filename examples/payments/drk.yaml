@@ -6,7 +6,7 @@ workflows:
       - populate_accounts
 
   individual:
-    vus: 100
+    vus: 10
     setup_queries:
       - open_account
       - fetch_accounts

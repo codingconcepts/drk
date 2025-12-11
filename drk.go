@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/codingconcepts/drk/pkg/model"
@@ -35,6 +38,7 @@ func main() {
 	var e model.EnvironmentVariables
 
 	flag.StringVar(&e.Config, "config", "drk.yaml", "absolute or relative path to config file")
+	flag.StringVar(&e.RawConfig, "raw-config", "", "base64 config (provide instead of --config)")
 	flag.StringVar(&e.URL, "url", "", "database connection string")
 	flag.StringVar(&e.Driver, "driver", "pgx", "database driver to use [mysql, spanner, pgx]")
 	flag.DurationVar(&e.Duration, "duration", time.Minute*10, "total duration of simulation")
@@ -42,7 +46,7 @@ func main() {
 	flag.IntVar(&e.Retries, "retries", 1, "number of request retries")
 	flag.DurationVar(&e.QueryTimeout, "query-timeout", time.Second*5, "timeout for database queries")
 	flag.BoolVar(&e.Debug, "debug", false, "show debugging logs")
-	flag.BoolVar(&e.Verbose, "verbose", false, "print each generated error as it's encountered")
+	flag.BoolVar(&e.Errors, "errors", false, "print each  error as it's encountered")
 	flag.BoolVar(&e.Sensitive, "sensitive", false, "show sensitive logs")
 	flag.IntVar(&e.AverageWindowSize, "average-window-size", 1000, "number of request to derive an average latency for")
 	flag.BoolVar(&e.NoColor, "no-color", false, "print logs without color")
@@ -79,7 +83,7 @@ func main() {
 		}
 	}
 
-	if e.URL == "" || e.Driver == "" || e.Config == "" {
+	if e.URL == "" || e.Driver == "" || (e.Config == "" && e.RawConfig == "") {
 		flag.Usage()
 		os.Exit(2)
 	}
@@ -88,7 +92,7 @@ func main() {
 		log.Fatalf("invalid output type: %q (should be one of: %v)", *mode, monitoring.ValidPrintModes)
 	}
 
-	cfg, err := loadConfig(e.Config)
+	cfg, err := loadConfig(e.Config, e.RawConfig)
 	if err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
@@ -195,15 +199,26 @@ func monitor(r *model.Runner, e model.EnvironmentVariables, printer *monitoring.
 	}
 }
 
-func loadConfig(path string) (*model.Drk, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("opening file: %w", err)
+func loadConfig(path, raw string) (*model.Drk, error) {
+	var r io.ReadCloser
+	var err error
+
+	if raw != "" {
+		config, err := base64.StdEncoding.DecodeString(raw)
+		if err != nil {
+			return nil, fmt.Errorf("parsing base64 config: %w", err)
+		}
+		r = io.NopCloser(strings.NewReader(string(config)))
+	} else {
+		r, err = os.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("opening file: %w", err)
+		}
 	}
-	defer file.Close()
+	defer r.Close()
 
 	var cfg model.Drk
-	if err = yaml.NewDecoder(file).Decode(&cfg); err != nil {
+	if err = yaml.NewDecoder(r).Decode(&cfg); err != nil {
 		return nil, fmt.Errorf("parsing file: %w", err)
 	}
 

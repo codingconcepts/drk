@@ -10,7 +10,7 @@ ifndef VERSION
 	$(error VERSION is undefined)
 endif
 
-docker_push: validate_version
+docker_build: validate_version
 	@docker build --platform linux/amd64 \
 		-t codingconcepts/drk:linux_amd64_${VERSION} \
 		--build-arg version=${VERSION} \
@@ -47,6 +47,8 @@ release: validate_version
 	tar -zcvf ./releases/drk_${VERSION}_windows_amd64.tar.gz ./drk ;\
 
 	rm ./drk
+
+	open releases
 
 teardown:
 	docker ps -aq | xargs docker rm -f
