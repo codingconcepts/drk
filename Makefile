@@ -10,22 +10,22 @@ ifndef VERSION
 	$(error VERSION is undefined)
 endif
 
-docker_build: validate_version
+docker_push: validate_version
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" drk.go
+
 	@docker build --platform linux/amd64 \
 		-t codingconcepts/drk:linux_amd64_${VERSION} \
-		--build-arg version=${VERSION} \
-		--build-arg arch=amd64 \
+		--push \
 		.
+
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" drk.go
 
 	@docker build --platform linux/arm64 \
 		-t codingconcepts/drk:linux_arm64_${VERSION} \
-		--build-arg version=${VERSION} \
-		--build-arg arch=arm64 \
+		--push \
 		.
-
-docker_push: docker_build
-	@docker push codingconcepts/drk:linux_amd64_${VERSION}
-	@docker push codingconcepts/drk:linux_arm64_${VERSION}
+	
+	rm ./drk
 
 release: validate_version
 	- mkdir releases
